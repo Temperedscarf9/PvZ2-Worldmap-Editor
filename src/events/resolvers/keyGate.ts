@@ -100,11 +100,15 @@ export async function resolveKeyGateResources(ctx: EventResourceCtx): Promise<Ev
         const keyBitmap = await getImageBitmapCached(keyFile);
         const w = keyBitmap.width;
         const h = keyBitmap.height;
-        const keyScale = 0.5*120/h; // 对应 (float)v309 * 0.5
+        // Authoring baseline is 1536: 0.5*120/h → ~60px on-screen.
+        // Per-resolution static packs already ship half-size art at 768; multiplying by
+        // (resolution/1536) keeps world-relative size correct (unlike raw 60/h which
+        // locks a fixed 60px and looks like a 1536 icon on a 768 map).
+        const keyScale = ((0.5 * 120) / h) * (resolution / 1536);
 
         // X = flagOff + v161*s - w/4   （-w/4 即 (v309*0.5)/2，钥匙对自身宽度的居中修正）
         // Y = flagOff + v162*s
-        const finalPixelX = flagOffX + keyRelXConst - w*(120/h) / 4;
+        const finalPixelX = flagOffX + keyRelXConst - w * (120 / h) * (resolution / 1536) / 4;
         const finalPixelY = flagOffY + keyRelYConst;
         resList.push({
           type: 'image',
