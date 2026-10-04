@@ -18,7 +18,18 @@ export interface PathPieceInfo {
 }
 
 export let activePathPieces: PathPieceInfo[] = [];
+/**
+ * Cache of decoded path-tile images.
+ * Key MUST include resolution (+ file identity): the same basename exists under
+ * images/768/... and images/1536/... with different pixel sizes. Keying by name
+ * alone caused 768 maps to reuse 1536 naturalWidth/Height (tiles looked "2× too big").
+ * Static path tiles are already authored per resolution — do NOT CSS-scale them.
+ */
 export const pathImageCache = new Map<string, HTMLImageElement>();
+
+function pathTileCacheKey(file: File, resolution = State.data.textureResolution): string {
+  return `${resolution}|${file.name}|${file.size}|${file.lastModified}`;
+}
 
 export function clearPathImageCache(): void {
   pathImageCache.forEach((img) => {
@@ -435,11 +446,13 @@ export function compileGridTilesSync(
     const file = findPathTextureFile(worldName, t.tile.filename);
     if (!file) continue;
 
-    const img = pathImageCache.get(file.name);
+    // Use resolution-aware key — never file.name alone (768 vs 1536 share basenames).
+    const img = pathImageCache.get(pathTileCacheKey(file, resolution));
     if (!img) continue;
 
-    const w = img.width;
-    const h = img.height;
+    // Natural pixel size of the resolution-matched asset (already adapted — no extra scale).
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
 
     const actual_X = t.X_grid * (resolution / 1800);
     const actual_Y = t.Y_grid * (resolution / 1800);
@@ -482,7 +495,7 @@ export function findPathTextureFile(worldName: string, filename: string): File |
 }
 
 export function loadSingleImage(file: File): Promise<HTMLImageElement | null> {
-  const cacheKey = file.name;
+  const cacheKey = pathTileCacheKey(file);
   if (pathImageCache.has(cacheKey)) {
     return Promise.resolve(pathImageCache.get(cacheKey)!);
   }
@@ -588,8 +601,9 @@ export async function compileGridTiles(
 
       if (isInterrupted()) return null;
 
-      const w = img.width;
-      const h = img.height;
+      // Natural size of the per-resolution static tile (do not apply anim-style scale).
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
 
       const actual_X = t.X_grid * (resolution / 1800);
       const actual_Y = t.Y_grid * (resolution / 1800);
