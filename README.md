@@ -6,7 +6,7 @@
 
 **PvZ2-Worldmap-Editor** 是一个用 TypeScript 开发的可视化世界地图编辑器。你可以用它来修改《植物大战僵尸 2》中的世界地图布局。
 
-编辑完成后，你可以直接导出文件，将导出json重命名为worldmap.json,编码为rton替换rsb提取目录中的对应文件后打包使用。
+编辑完成后，你可以导出文件，将导出json重命名为worldmap.json,编码为rton替换rsb提取目录中的对应文件后打包使用。
 
 > ⚠️ **注意**：本工具仍处于实验阶段，部分功能尚不完善。
 
@@ -19,7 +19,7 @@
 - 所有解码文件和文件夹必须转换大小写而不是rsb头部中记录的全大写
 - pam解码json统一放置在768下的动画文件夹
 
-对上述要求不满的可以克隆代码随意修改
+> ⚠️ 对上述要求不满的可以克隆代码随意修改
 
 ### 1. 获取解码工具
 
@@ -77,6 +77,8 @@ https://github.com/twinstar6980/Twinning.git
 │       └── fbUsv8C5eI.ttf
 └── convert/
     ├── packages/
+    │   ├── PlantTypes.json
+    │   ├── PropertySheets.json
     │   ├── worldmaplist.json
     │   └── worlds/
     │       ├── egypt/
@@ -106,6 +108,7 @@ https://github.com/twinstar6980/Twinning.git
         │   │   │   ├── danger_node_egypt/
         │   │   │   ├── danger_level_egypt.png
         │   │   │   ├── zomboss_node_egypt/
+        │   │   │   └── ...
         │   │   ├── UI/
         │   │   │   └── packets/
         │   │   │       ├── ready.png
@@ -122,7 +125,6 @@ https://github.com/twinstar6980/Twinning.git
         │   └── full/
         │       └── worldmap/
         │           ├── future/
-        │           │   ├── island0.png
         │           │   ├── island1.png
         │           │   ├── island2.png
         │           │   ├── ...
@@ -130,7 +132,7 @@ https://github.com/twinstar6980/Twinning.git
         │           │   ├── anim2/
         │           │   └── ...
         │           ├── pirate/
-        │           │   ├── island0.png
+        │           │   ├── island1.png
         │           │   ├── ...
         │           │   ├── anim1/
         │           │   ├── anim2/
@@ -158,9 +160,10 @@ https://github.com/twinstar6980/Twinning.git
 https://temperedscarf9.github.io/PvZ2-Worldmap-Editor/
 ```
 
-**操作方法**：先选择地图模式，然后再将rsb解码得到的目录上传至编辑器
+**操作方法**：先选择中文版/国际版和线性地图/非线性地图，确保符合解包的rsb版本，然后再将解包目录上传至编辑器
 
-- 目前只支持国际版大部分版本（1.4~1.6以及6.x~最新版本）和中文ios旧版（1.7.4附近的版本）这些版本只需用之前提到的工具解包即可直接上传编辑，其他版本有需要额外处理的文件或地图编辑器尚未适配
+- 较新版本有相当多的植物动画和世界数据，这需要预处理不少时间
+- 目前只支持国际版大部分版本（`1.4~1.6`以及`6.x~`最新版本）和中文ios旧版（1.7.4附近的版本）这些版本只需用之前提到的工具解包即可直接上传编辑，其他版本有需要额外处理的文件或地图编辑器尚未适配
 
 > 不要忘记必须先选择地图模式！！！
 
