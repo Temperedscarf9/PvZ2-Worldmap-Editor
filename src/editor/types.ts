@@ -6,7 +6,7 @@ export type SelectedRef = PieceInfo | EventPieceInfo;
 export type ToolMode = 'island' | 'doodad' | 'event' | 'select';
 
 /** Sub-tool for island / doodad drawing modes (shared UI row). */
-export type DrawSubMode = 'add' | 'move' | 'flip' | 'rotation' | 'delete' | 'changeLayer' | 'none';
+export type DrawSubMode = 'add' | 'move' | 'flip' | 'rotation' | 'delete' | 'none';
 
 export type EventSubMode = 'add' | 'move' | 'edit' | 'delete' | 'none';
 

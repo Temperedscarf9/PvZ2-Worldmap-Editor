@@ -28,20 +28,6 @@ import { autoSaveToLocalStorage } from './MapIO';
 import { HistoryManager } from './HistoryManager';
 import { updateInspector } from '../ui/sidebar';
 
-/** Set node.m_drawLayer to EditorState.defaultDrawLayer and remount. */
-async function applyChangeLayer(node: any, mode: 'reload' | 'transform' = 'reload'): Promise<void> {
-  const next = EditorState.defaultDrawLayer;
-  if ((node.m_drawLayer ?? 0) === next) {
-    showToast(`已是绘制层 ${next}`);
-    return;
-  }
-  HistoryManager.recordBefore('修改绘制层');
-  node.m_drawLayer = next;
-  await refreshSingleObject(node, mode);
-  HistoryManager.endGesture();
-  updateInspector();
-  showToast(`绘制层 → ${next}`);
-}
 
 const UI_CHROME_SELECTORS = [
   '#editor-toolbar',
@@ -135,7 +121,7 @@ async function handleMouseDown(e: MouseEvent): Promise<void> {
   // Island
   if (EditorState.toolMode === 'island') {
     if (EditorState.drawSubMode === 'none') {
-      showToast('请先激活 添加 / 移动 / 翻转 / 旋转 / 改层 / 删除');
+      showToast('请先激活 添加 / 移动 / 翻转 / 旋转 / 删除');
       return;
     }
     if (EditorState.drawSubMode === 'add') {
@@ -161,8 +147,6 @@ async function handleMouseDown(e: MouseEvent): Promise<void> {
       await flipNode(node, 'transform');
     } else if (EditorState.drawSubMode === 'rotation') {
       openRotatePanel(node, 'piece');
-    } else if (EditorState.drawSubMode === 'changeLayer') {
-      await applyChangeLayer(node, 'reload');
     } else if (EditorState.drawSubMode === 'delete') {
       const confirmDel = await showConfirmModal('确定删除选中的岛屿元素吗？\n\nDelete this map piece?');
       if (confirmDel) {
@@ -177,7 +161,7 @@ async function handleMouseDown(e: MouseEvent): Promise<void> {
   // Doodad
   if (EditorState.toolMode === 'doodad') {
     if (EditorState.drawSubMode === 'none') {
-      showToast('请先激活 添加 / 移动 / 翻转 / 旋转 / 改层 / 删除');
+      showToast('请先激活 添加 / 移动 / 翻转 / 旋转 / 删除');
       return;
     }
     if (EditorState.drawSubMode === 'add') {
@@ -205,8 +189,6 @@ async function handleMouseDown(e: MouseEvent): Promise<void> {
       await flipNode(node, 'reload');
     } else if (EditorState.drawSubMode === 'rotation') {
       openRotatePanel(node, 'doodad');
-    } else if (EditorState.drawSubMode === 'changeLayer') {
-      await applyChangeLayer(node, 'reload');
     } else if (EditorState.drawSubMode === 'delete') {
       const confirmDel = await showConfirmModal('确定删除选中的装饰物吗？\n\nDelete this doodad?');
       if (confirmDel) {

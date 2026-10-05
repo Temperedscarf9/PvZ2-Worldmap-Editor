@@ -204,18 +204,10 @@ export async function handleImageUpload(files: File[] | FileList): Promise<void>
   await yieldToBrowser();
 
   try {
-    // indexFiles is synchronous and walks every uploaded file (regex-matching paths, building
-    // several Maps) - for a multi-thousand-file resource pack this alone can take a visible
-    // moment, previously with zero feedback beyond the frozen intro modal.
+    // Upload phase: index only. All plant/map warmup runs in handleStartViewer after
+    // the user clicks Start — loading PlantTypes / packet meta / decoding assets here
+    // raced with intro UI and could fail or stall before Start was even pressed.
     indexFiles(fileArray);
-
-    updateGlobalLoading('正在索引资源文件…', '读取 resource_manifest.json');
-    await yieldToBrowser();
-    await loadPlantPacketMetadata();
-
-    updateGlobalLoading('正在索引资源文件…', '读取 PlantTypes.json');
-    await yieldToBrowser();
-    await loadPlantTypes();
 
     populateWorldSelector();
 
@@ -241,7 +233,7 @@ export async function handleImageUpload(files: File[] | FileList): Promise<void>
       }
     }
 
-    // 新包上传：旧预热全部作废
+    // New pack: drop any previous session warm caches (Start will rebuild them).
     clearAllRuntimeCaches({ preservePreloadedAssets: false });
     clearPlantPacketPreloadCache();
   } finally {
@@ -261,14 +253,14 @@ export async function handleImageUpload(files: File[] | FileList): Promise<void>
 export async function handleStartViewer(): Promise<boolean> {
   if (State.data.availableWorlds.length === 0) return false;
 
-  showGlobalLoading('正在预热植物资源…', '读取 PlantTypes.json');
+  showGlobalLoading('正在预热植物资源…', '读取 packet / PlantTypes 元数据');
   await nextFrame();
   await yieldToBrowser();
 
   try {
-    if (!State.data.plantPacketMeta || State.data.plantPacketMeta.size === 0) {
-      await loadPlantPacketMetadata();
-    }
+    // All warmup lives here (after Start), not on upload:
+    // metadata → plant anims/packets → plant picker → every world map asset.
+    await loadPlantPacketMetadata();
     await loadPlantTypes();
 
     await preloadAllPlantAssets((phase, current, total) => {
@@ -281,12 +273,12 @@ export async function handleStartViewer(): Promise<boolean> {
 
     updateGlobalLoading('正在预热植物资源…', '构建选择器控件');
     await yieldToBrowser();
-    // Prebuilds the Event Property Editor's plant-picker <button> elements + per-world order,
-    // once, so opening that field is instant the very first time - not just after a first
-    // (lazy, laggy) use has warmed it.
     preparePlantDropdownAssets();
 
-    updateGlobalLoading('正在预热地图资源…', `共 ${State.data.availableWorlds.length} 个世界 × 2 档分辨率`);
+    updateGlobalLoading(
+      '正在预热地图资源…',
+      `共 ${State.data.availableWorlds.length} 个世界 × 2 档分辨率`
+    );
     await yieldToBrowser();
     try {
       await preloadAllMapAssets((_phase, current, total) => {

@@ -22,10 +22,6 @@ const DRAW_TOASTS: Record<Exclude<DrawSubMode, 'none'>, { on: string; off: strin
   flip: { on: '翻转已激活：点击 hitbox 切换水平翻转', off: '翻转已关闭' },
   rotation: { on: '旋转已激活：点击 hitbox 打开旋转面板', off: '旋转已关闭' },
   delete: { on: '删除已激活：点击 hitbox 删除', off: '删除已关闭' },
-  changeLayer: {
-    on: '改层已激活：点击节点将其 m_drawLayer 设为当前层',
-    off: '改层已关闭',
-  },
 };
 
 const EVENT_TOASTS: Record<Exclude<EventSubMode, 'none'>, { on: string; off: string }> = {

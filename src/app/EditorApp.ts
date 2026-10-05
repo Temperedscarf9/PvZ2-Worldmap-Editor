@@ -214,9 +214,6 @@ export const EditorApp = (() => {
         showToast(`默认绘制图层 → ${EditorState.defaultDrawLayer}`);
       };
     }
-    if (ui.btnChangeLayer) {
-      ui.btnChangeLayer.onclick = () => ToolController.setDrawSub('changeLayer');
-    }
     if (ui.btnRotation) ui.btnRotation.onclick = () => ToolController.setDrawSub('rotation');
     if (ui.btnFlip) ui.btnFlip.onclick = () => ToolController.setDrawSub('flip');
     if (ui.btnDelete) ui.btnDelete.onclick = () => ToolController.setDrawSub('delete');

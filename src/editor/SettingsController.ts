@@ -9,10 +9,14 @@ import {
   clearComposedPacketCache,
   loadPlantPacketMetadata,
   rebuildWorldAssets,
+  indexFiles,
+  clearImageBitmapCache,
 } from '../core/resources';
 import { clearEventResourceCache } from '../events/resolveEventResources';
+import { clearPathImageCache } from '../render/PathRenderer';
 import { preloadWorldResources } from '../render/MapRenderer';
 import { DOM } from '../app/dom';
+import { populateWorldSelector } from '../ui/sidebar';
 import {
   showGlobalLoading,
   hideGlobalLoading,
@@ -33,8 +37,26 @@ let deps: SettingsDeps | null = null;
 async function onChinaVersionChange(checked: boolean): Promise<void> {
   State.data.isChinaVersion = checked;
 
-  // Pre-pack: preparatory only — Start preload reads the flag fresh.
-  if (State.data.availableWorlds.length === 0) return;
+  // Before Start: flip flag + re-index only (worldmap path patterns differ CN/Intl).
+  // Do NOT load PlantTypes / packets / decode assets — that waits for Start.
+  if (!State.data.mapConfig) {
+    clearComposedPacketCache();
+    clearEventResourceCache();
+    const files = Object.values(State.data.globalFiles || {});
+    if (files.length > 0) {
+      indexFiles(files);
+      populateWorldSelector();
+      if (DOM.uiElements.startButton) {
+        DOM.uiElements.startButton.disabled = State.data.availableWorlds.length === 0;
+      }
+    }
+    showToast(
+      State.data.isChinaVersion
+        ? '已标记为中国版'
+        : '已标记为国际版'
+    );
+    return;
+  }
 
   showGlobalLoading('正在切换版本…', '重新装载 packet 元数据');
   await nextFrame();
@@ -44,7 +66,7 @@ async function onChinaVersionChange(checked: boolean): Promise<void> {
     clearComposedPacketCache();
     clearEventResourceCache();
     await handleRebuildPlantAssets();
-    if (State.data.mapConfig && deps) {
+    if (deps) {
       updateGlobalLoading('正在切换版本…', '重新渲染地图');
       await deps.triggerMapRender();
     }
@@ -63,6 +85,9 @@ async function onChinaVersionChange(checked: boolean): Promise<void> {
 async function onTextureResolutionChange(value: number): Promise<void> {
   State.data.textureResolution = value;
   applyHitboxCssVar(value);
+  clearPathImageCache();
+  clearEventResourceCache();
+  clearImageBitmapCache();
   showGlobalLoading('正在切换分辨率…', `分辨率 → ${State.data.textureResolution}`);
   await nextFrame();
   await yieldToBrowser();

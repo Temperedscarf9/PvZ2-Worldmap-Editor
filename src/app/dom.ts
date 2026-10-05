@@ -56,7 +56,6 @@ export const DOM = {
     btnLayerDec:      getEl<HTMLButtonElement>('btn-layer-dec'),
     btnLayerInc:      getEl<HTMLButtonElement>('btn-layer-inc'),
     btnCurLayer:      getEl<HTMLButtonElement>('btn-cur-layer'),
-    btnChangeLayer:   getEl<HTMLButtonElement>('btn-change-layer'),
     btnRotation:      getEl<HTMLButtonElement>('btn-island-rotation', ['btn-rotation']),
     btnFlip:          getEl<HTMLButtonElement>('btn-island-flip', ['btn-flip']),
     btnAdd:           getEl<HTMLButtonElement>('btn-island-add', ['btn-add']),

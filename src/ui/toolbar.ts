@@ -97,7 +97,6 @@ export function updateToolbarState(): void {
     setDrawActive(ui.btnFlip, drawGroupOn && drawSubMode === 'flip');
     setDrawActive(ui.btnRotation, drawGroupOn && drawSubMode === 'rotation');
     setDrawActive(ui.btnDelete, drawGroupOn && drawSubMode === 'delete');
-    setDrawActive(ui.btnChangeLayer, drawGroupOn && drawSubMode === 'changeLayer');
 
     if (ui.btnCurLayer) {
       const layerOn = toolMode === 'island' || toolMode === 'doodad';
@@ -106,11 +105,6 @@ export function updateToolbarState(): void {
       ui.btnCurLayer.title = `默认绘制层: ${defaultDrawLayer}（激活：隐藏覆盖层 + 按层过滤 mapPiece；关闭：全部显示）`;
       if (layerOn && isCurLayerActive) ui.btnCurLayer.classList.add('active');
       else ui.btnCurLayer.classList.remove('active');
-    }
-    if (ui.btnChangeLayer) {
-      const layerOn = toolMode === 'island' || toolMode === 'doodad';
-      ui.btnChangeLayer.disabled = !layerOn;
-      ui.btnChangeLayer.title = `改层 → 当前默认层 ${defaultDrawLayer}（激活后点击节点写入 m_drawLayer）`;
     }
     if (ui.btnLayerDec) {
       ui.btnLayerDec.disabled = !(toolMode === 'island' || toolMode === 'doodad') || !isCurLayerActive;
