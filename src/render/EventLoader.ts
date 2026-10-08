@@ -172,8 +172,15 @@ export function loadImageToElement(
       transformStr = `matrix(${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]})`;
     } else {
       let m = Matrix.identity;
-      const scaleX = (node.m_scaleX ?? 1) * (extraScale ?? 1);
-      const scaleY = (node.m_scaleY ?? 1) * (extraScale ?? 1);
+      // Glyph data-URLs are already rasterized at the target fontSize — never multiply
+      // node m_scale* on top (that is bitmap scaling and crushes the outline).
+      const isGlyphBitmap = typeof source === 'string';
+      const scaleX = isGlyphBitmap
+          ? (extraScale ?? 1)
+          : (node.m_scaleX ?? 1) * (extraScale ?? 1);
+      const scaleY = isGlyphBitmap
+          ? (extraScale ?? 1)
+          : (node.m_scaleY ?? 1) * (extraScale ?? 1);
       m = Matrix.multiply(m, Matrix.scale(scaleX, scaleY));
       m = Matrix.multiply(m, Matrix.translate(extraOffset?.x ?? 0, extraOffset?.y ?? 0));
 
@@ -334,8 +341,8 @@ function shouldRenderZombossNode(
 
 function isBossOrNonfinalBoss(n: MapEventNode): boolean {
   return (
-    n.m_eventType === 'level' &&
-    (n.m_levelNodeType === 'boss' || n.m_levelNodeType === 'nonfinalboss')
+      n.m_eventType === 'level' &&
+      (n.m_levelNodeType === 'boss' || n.m_levelNodeType === 'nonfinalboss')
   );
 }
 
