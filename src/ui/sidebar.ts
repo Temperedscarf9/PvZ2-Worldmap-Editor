@@ -3,33 +3,115 @@ import { DOM } from '../app/dom';
 import { EditorState } from '../editor/EditorState';
 import { getSelectedNode, isDoodadRef, isMapPieceRef } from '../editor/types';
 
-/** Lightweight selection readout on the metadata bar. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtFloat(n: unknown): string {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
+  return n.toFixed(6);
+}
+
+function fmtBool(v: unknown): string {
+  if (v === true) return 'true';
+  if (v === false) return 'false';
+  return '—';
+}
+
+function fmtVal(v: unknown): string {
+  if (v == null || v === '') return '—';
+  return esc(String(v));
+}
+
+function row(label: string, value: string): string {
+  return `<div class="sel-row"><span class="sel-key">${label}</span><span class="sel-val">${value}</span></div>`;
+}
+
+function renderIslandOrDoodad(node: any, kind: 'island' | 'doodad'): string {
+  const x = node.m_position?.x;
+  const y = node.m_position?.y;
+  return [
+    `<div class="sel-kind">${kind}</div>`,
+    row('m_imageID', fmtVal(node.m_imageID)),
+    row('m_position.x', fmtFloat(x)),
+    row('m_position.y', fmtFloat(y)),
+    row('m_drawLayer', fmtVal(node.m_drawLayer)),
+    row('m_parallaxLayer', fmtVal(node.m_parallaxLayer)),
+    row('m_isArtFlipped', fmtBool(node.m_isArtFlipped)),
+    row('m_rotationAngle', fmtFloat(node.m_rotationAngle)),
+    row('m_scaleX', fmtFloat(node.m_scaleX)),
+    row('m_scaleY', fmtFloat(node.m_scaleY)),
+    row('m_name', fmtVal(node.m_name)),
+  ].join('');
+}
+
+function renderEvent(node: any): string {
+  const x = node.m_position?.x;
+  const y = node.m_position?.y;
+  return [
+    `<div class="sel-kind">event</div>`,
+    row('m_eventType', fmtVal(node.m_eventType)),
+    row('m_name', fmtVal(node.m_name)),
+    row('m_position.x', fmtFloat(x)),
+    row('m_position.y', fmtFloat(y)),
+    row('m_dataString', fmtVal(node.m_dataString)),
+    row('m_parentEvent', fmtVal(node.m_parentEvent)),
+    row('m_unlockedFrom', fmtVal(node.m_unlockedFrom)),
+  ].join('');
+}
+
+/**
+ * Read-only selection readout in the right panel.
+ * Field set follows the left tool mode (island / doodad vs event), not only the node type.
+ */
 export function updateInspector(): void {
   const bar = DOM.uiElements.metaBar;
   if (!bar) return;
 
   const selectedPieceRef = EditorState.selectedPieceRef;
   if (!selectedPieceRef) {
-    bar.textContent = `WORLD: ${State.data.selectedWorld || 'NONE'}`;
+    bar.innerHTML = `<div class="selection-empty">在地图上点击节点以查看属性</div>`;
     return;
   }
 
   const node = getSelectedNode(selectedPieceRef);
   if (!node) {
-    bar.textContent = `WORLD: ${State.data.selectedWorld || 'NONE'}`;
+    bar.innerHTML = `<div class="selection-empty">在地图上点击节点以查看属性</div>`;
     return;
   }
 
-  const name = node.m_name || node.m_eventType || 'Unnamed';
-  const type = isMapPieceRef(selectedPieceRef)
-    ? 'island'
-    : isDoodadRef(selectedPieceRef)
-      ? 'doodad'
-      : 'event';
-  const x = Math.round(node.m_position?.x || 0);
-  const y = Math.round(node.m_position?.y || 0);
-  const layer = node.m_drawLayer ?? '—';
-  bar.textContent = `${type}: ${name} | X:${x} Y:${y} | layer:${layer}`;
+  const mode = EditorState.toolMode;
+
+  if (mode === 'island' || mode === 'doodad') {
+    // Island / doodad modes: piece properties (image, layer, flip, …)
+    const kind: 'island' | 'doodad' =
+      mode === 'doodad' || isDoodadRef(selectedPieceRef)
+        ? 'doodad'
+        : isMapPieceRef(selectedPieceRef)
+          ? 'island'
+          : 'island';
+    bar.innerHTML = renderIslandOrDoodad(node, kind);
+    return;
+  }
+
+  if (mode === 'event') {
+    bar.innerHTML = renderEvent(node);
+    return;
+  }
+
+  // Select mode: show based on what was clicked
+  if (isMapPieceRef(selectedPieceRef) || isDoodadRef(selectedPieceRef)) {
+    bar.innerHTML = renderIslandOrDoodad(
+      node,
+      isDoodadRef(selectedPieceRef) ? 'doodad' : 'island'
+    );
+  } else {
+    bar.innerHTML = renderEvent(node);
+  }
 }
 
 export function populateWorldSelector(): void {

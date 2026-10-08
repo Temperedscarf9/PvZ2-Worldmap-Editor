@@ -95,8 +95,17 @@
           <option value="768">768</option>
         </select>
       </div>
-      <div id="active-world-info" class="status-badge">当前: 无</div>
-      <div id="metadata-bar" class="metadata-info">OBJECT_ID: UNKNOWN | WORLD_ID: UNKNOWN | WORLD: NONE</div>
+    </div>
+
+    <!-- 选中节点只读信息（随左侧模式切换字段） -->
+    <div class="sidebar-section" id="selection-info-section">
+      <div class="section-header">
+        <span class="section-icon">◎</span>
+        <label>选中节点</label>
+      </div>
+      <div id="metadata-bar" class="selection-info">
+        <div class="selection-empty">在地图上点击节点以查看属性</div>
+      </div>
     </div>
   </aside>
 
