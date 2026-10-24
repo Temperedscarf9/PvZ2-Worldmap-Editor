@@ -12,6 +12,7 @@ import { degreeToRad } from '../../utils/mathTool';
 import { computeLocalTransform, loadPiece, preparePiece } from '../../render/PieceLoader';
 import { tryGetLayerStack, bindLayerStack, LayerStack } from '../LayerStack';
 import type { IslandEntity } from '../entities/types';
+import {animRotation} from "../../utils/constants.ts";
 
 function stack(): LayerStack {
   const existing = tryGetLayerStack();
@@ -45,8 +46,8 @@ function toEntity(info: PieceInfo): IslandEntity {
         runtime.scaleX = info.piece.m_scaleX ?? 1;
         runtime.scaleY = info.piece.m_scaleY ?? 1;
         if ((info.piece.m_imageID ?? 0) > maxImageId) {
-          const STEP = 2647 / 180;
-          runtime.angle = degreeToRad(-(STEP * (info.piece.m_rotationAngle ?? 0) % 360));
+          const STEP = animRotation;
+          runtime.angle = degreeToRad((STEP * (info.piece.m_rotationAngle ?? 0) % 360));
         } else {
           runtime.angle = degreeToRad(info.piece.m_rotationAngle ?? 0);
         }

@@ -4,7 +4,7 @@
  */
 import { PamCanvasPlayer } from '../pam/canvas-player';
 import { Matrix, degreeToRad } from '../utils/mathTool';
-import { CONFIG } from '../utils/constants';
+import {animRotation, CONFIG} from '../utils/constants';
 import { MapEventNode, PieceInfo } from '../domain/types';
 import { State, pieceRuntimeMap, imageDimensionsCache, PieceRuntime } from '../core/state';
 import { getWorldAnimationBoundary, fetchWorldMapListAnimationDelays, fetchWorldMapListAnimationDetails } from '../core/worldMeta';
@@ -135,8 +135,8 @@ export async function loadAnimationPiece(
     if (!runtime) return null;
     runtime.height = sizeH;
     runtime.width = sizeW;
-    const STEP = 2647 / 180;
-    const angle = -(STEP * (piece.m_rotationAngle ?? 0) % 360);
+    const STEP = animRotation;
+    const angle = (STEP * (piece.m_rotationAngle ?? 0) % 360);
     runtime.angle = degreeToRad(angle);
 
     runtime.animId = (piece.m_imageID ?? 0) - maxImageId;

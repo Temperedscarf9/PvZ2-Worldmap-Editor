@@ -19,7 +19,7 @@ export {
   getPacketName,
 } from './worldMappings';
 export { toTexturePath, toJsonPath, toTextureKey } from './pathResolver';
-
+export const animRotation = 180/Math.PI;
 export const LEVEL_NODE_OFFSET = Object.freeze({ x: -98 * 2, y: -104 * 2 });
 export const BOSS_NODE_OFFSET_STAGE = Object.freeze({ x: -76 * 2.56, y: -90 * 2.56 });
 export const BOSS_NODE_OFFSET_HOLOGRAM = Object.freeze({ x: -76 * 2.56, y: -180 * 2.56 });
