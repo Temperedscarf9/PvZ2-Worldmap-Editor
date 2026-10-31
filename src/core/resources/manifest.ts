@@ -206,3 +206,28 @@ export function rebuildWorldAssets(): void {
     }
   }
 }
+
+/**
+ * Texture resolutions actually present in the uploaded pack, e.g. [1536, 768, 384].
+ * The reference MapDesigner UI lists several more sizes; those must be disabled when the
+ * pack has no `convert/images/<size>/...` directory instead of silently rendering an empty map.
+ */
+export function getAvailableTextureResolutions(): number[] {
+  const found = new Set<number>();
+  for (const [dir, files] of State.data.filesByDir) {
+    const m = dir.match(/^convert\/images\/(\d+)\//i);
+    if (!m) continue;
+    // A resolution only counts if it actually has map imagery, not just PAM JSON or
+    // unrelated UI textures. 768 is commonly used for PAM JSON even when static islands
+    // live only at 1536.
+    if (!dir.includes('/worldmap/')) continue;
+    if (!files.some((f) => /\.(png|webp)$/i.test(f.name))) continue;
+    const n = parseInt(m[1], 10);
+    if (Number.isFinite(n) && n > 0) found.add(n);
+  }
+  return Array.from(found).sort((a, b) => b - a);
+}
+
+export function hasTextureResolution(resolution: number): boolean {
+  return getAvailableTextureResolutions().includes(resolution);
+}

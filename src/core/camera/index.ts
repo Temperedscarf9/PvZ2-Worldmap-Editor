@@ -6,7 +6,10 @@ export const snapValue = (value: number): number => Math.round(value);
 
 export const ZoomHelper = {
   getBaseZoom(vpHeight: number): number {
-    return Math.min((CONFIG.baseInitialZoom * vpHeight) / CONFIG.referenceHeight, 1);
+    // At 768 the same design area occupies half the texture pixels, so the screen scale
+    // must double to show an equivalent view after a resolution switch / reset.
+    const resFactor = State.data.textureResolution > 0 ? 1536 / State.data.textureResolution : 1;
+    return Math.min((CONFIG.baseInitialZoom * vpHeight * resFactor) / CONFIG.referenceHeight, 1);
   },
   getMinZoom(vpHeight: number): number {
     return Math.min((CONFIG.baseMinZoom * vpHeight) / CONFIG.referenceHeight, 1);

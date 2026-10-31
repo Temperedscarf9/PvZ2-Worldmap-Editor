@@ -11,11 +11,13 @@ import {
   rebuildWorldAssets,
   indexFiles,
   clearImageBitmapCache,
+  getAvailableTextureResolutions,
 } from '../core/resources';
 import { clearEventResourceCache } from '../events/resolveEventResources';
 import { clearPathImageCache } from '../render/PathRenderer';
 import { preloadWorldResources } from '../render/MapRenderer';
 import { DOM } from '../app/dom';
+import { clearMaxImageIdCache } from '../core/worldMeta';
 import { populateWorldSelector } from '../ui/sidebar';
 import {
   showGlobalLoading,
@@ -83,7 +85,26 @@ async function onChinaVersionChange(checked: boolean): Promise<void> {
 }
 
 async function onTextureResolutionChange(value: number): Promise<void> {
+  const available = getAvailableTextureResolutions();
+  if (available.length > 0 && !available.includes(value)) {
+    const select = DOM.uiElements.selectTextureRes;
+    if (select) select.value = String(State.data.textureResolution);
+    showToast(`资源包没有 ${value} 分辨率目录，已保持 ${State.data.textureResolution}`);
+    return;
+  }
+  if (value === State.data.textureResolution) return;
+
   State.data.textureResolution = value;
+
+  // Switching resolution changes the texture-pixel coordinate system. Reset the camera to
+  // the start view (the same design area thanks to ZoomHelper's resolution factor) instead
+  // of carrying stale texture-pixel offsets into the new map.
+  if (State.data.mapConfig && State.data.selectedWorld) {
+    State.camera.x = 0;
+    State.camera.y = 0;
+    State.camera.scale = 1;
+  }
+
   applyHitboxCssVar(value);
   clearPathImageCache();
   clearEventResourceCache();
@@ -100,7 +121,7 @@ async function onTextureResolutionChange(value: number): Promise<void> {
         State.data.textureResolution
       );
       updateGlobalLoading('正在切换分辨率…', '重新渲染地图');
-      await deps.triggerMapRender();
+      await deps.triggerMapRender({ resetCamera: true });
       await nextFrame();
       await yieldToBrowser();
     }
@@ -141,16 +162,24 @@ export const SettingsController = {
     }
 
     if (ui.checkChinaVersion) {
-      ui.checkChinaVersion.checked = State.data.isChinaVersion;
+      // Respect the checkbox's initial state instead of forcing State's default onto it.
+      State.data.isChinaVersion = ui.checkChinaVersion.checked;
       ui.checkChinaVersion.onchange = async (e) => {
         await onChinaVersionChange((e.target as HTMLInputElement).checked);
       };
     }
 
     if (ui.checkIsLinear) {
-      ui.checkIsLinear.checked = State.data.isLinear;
+      // The HTML ships with linear checked; State defaults to false. Adopt the DOM value here,
+      // otherwise the first world loads as a non-linear map and the static/animation boundary
+      // is computed from the wrong maximum image id.
+      State.data.isLinear = ui.checkIsLinear.checked;
       ui.checkIsLinear.onchange = (e) => {
         State.data.isLinear = (e.target as HTMLInputElement).checked;
+        clearMaxImageIdCache();
+        if (State.data.mapConfig && deps) {
+          void deps.triggerMapRender({ resetCamera: false });
+        }
       };
     }
 

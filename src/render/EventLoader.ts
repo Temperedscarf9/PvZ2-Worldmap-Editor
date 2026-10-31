@@ -77,11 +77,39 @@ function warmImageDecodeByUrl(url: string): Promise<{ width: number; height: num
   });
 }
 
+/**
+ * Local transform for non-doodad event animations (level/plant/etc.).
+ * Doodad animations must use the island matrix order (see loadAnimationToElement).
+ */
 export function computeEventLocalTransform(node: MapEventNode, extraX = 0, extraY = 0, extraScale = 1): string {
   let m = Matrix.identity;
   const scaleX = (node.m_scaleX ?? 1) * extraScale;
   const scaleY = (node.m_scaleY ?? 1) * extraScale;
   m = Matrix.multiply(m, Matrix.scale(scaleX, scaleY));
+  m = Matrix.multiply(m, Matrix.translate(extraX, extraY));
+  return `matrix(${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]})`;
+}
+
+/**
+ * Island / doodad animation matrix order (matches ipynb / computeLocalTransform):
+ *   S(scaleX * extraScale, scaleY * extraScale) * Flip * R(θ) * T(-97k, -97k)
+ * where extraScale already embeds (resolution/1536)*s and extraOffset is (-97k, -97k).
+ */
+function computeDoodadAnimLocalTransform(
+  node: MapEventNode,
+  extraX = 0,
+  extraY = 0,
+  extraScale = 1
+): string {
+  let m = Matrix.identity;
+  const scaleX = (node.m_scaleX ?? 1) * extraScale;
+  const scaleY = (node.m_scaleY ?? 1) * extraScale;
+  const flipScale = node.m_isArtFlipped ? -1 : 1;
+  const angle = degreeToRad(node.m_rotationAngle ?? 0);
+
+  m = Matrix.multiply(m, Matrix.scale(scaleX, scaleY));
+  m = Matrix.multiply(m, Matrix.scale(flipScale, 1));
+  m = Matrix.multiply(m, Matrix.rotate(angle));
   m = Matrix.multiply(m, Matrix.translate(extraX, extraY));
   return `matrix(${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]})`;
 }
@@ -110,12 +138,26 @@ export async function loadAnimationToElement(
 
     const el = document.createElement('div');
     el.className = 'map-piece';
+    const transformStr =
+      node.m_eventType === 'doodad'
+        ? computeDoodadAnimLocalTransform(
+            node,
+            extraOffset?.x ?? 0,
+            extraOffset?.y ?? 0,
+            extraScale
+          )
+        : computeEventLocalTransform(
+            node,
+            extraOffset?.x ?? 0,
+            extraOffset?.y ?? 0,
+            extraScale
+          );
     el.style.cssText = `
       left:0px;
       top:0px;
       width:${sizeW}px;
       height:${sizeH}px;
-      transform:${computeEventLocalTransform(node, extraOffset?.x ?? 0, extraOffset?.y ?? 0, extraScale)};
+      transform:${transformStr};
     `;
     parentEl.appendChild(el);
 

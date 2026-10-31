@@ -17,6 +17,8 @@ import { CONFIG } from '../utils/constants';
 import {
   fetchWorldMapListEntryPoint,
   fetchWorldMapListLastLevel,
+  fetchWorldMapListAnimationDetails,
+  fetchWorldMapListAnimationDelays,
   customEventStatusMap,
   customCMap,
   lastLoadedWorld,
@@ -49,6 +51,7 @@ import { SceneGraph } from '../scene/SceneGraph';
 import { PathFactory } from '../scene/factories/PathFactory';
 import { EventFactory } from '../scene/factories/EventFactory';
 import { applyHitboxCssVar } from '../utils/scale';
+import { yieldToBrowser } from '../ui/loading';
 
 export function getNextZIndexInContainer(container: HTMLElement): number {
   const stack = tryGetLayerStack();
@@ -155,12 +158,19 @@ export async function preloadWorldPathAssets(worldName: string): Promise<void> {
 
 export async function preloadWorldResources(worldName: string, config: MapConfigObject, resolution: number): Promise<void> {
   await getParsedWorldMapList();
+  // Must be warm before any computeLocalTransform / getAnimTransformFix call.
+  // Without this, the first render after a world switch (or cold start) sees a null
+  // cachedAnimationDetailsMap and every animation falls back to DEFAULT_FIX.
+  await Promise.all([
+    fetchWorldMapListAnimationDetails(),
+    fetchWorldMapListAnimationDelays(),
+  ]);
 
   const worldDataValue = config.objdata;
   const maxImageId = getWorldAnimationBoundary();
   const sortedPieces = worldDataValue.m_mapPieces || [];
 
-  const piecePromises = sortedPieces.map(async (piece) => {
+  const preloadPiece = async (piece: MapEventNode) => {
     const assets = State.data.worlds[worldName];
     if (!assets) return;
     const imageId = piece.m_imageID ?? 0;
@@ -197,22 +207,30 @@ export async function preloadWorldResources(worldName: string, config: MapConfig
         await compileAnimAssets(anim);
       }
     }
-  });
+  };
+
+  // Preload in small batches as well; decoding hundreds of images in one Promise.all can lock
+  // the main thread for a noticeable moment even though the loading mask is visible.
+  const PRELOAD_BATCH = 24;
+  for (let i = 0; i < sortedPieces.length; i += PRELOAD_BATCH) {
+    await Promise.all(sortedPieces.slice(i, i + PRELOAD_BATCH).map(preloadPiece));
+    if (i + PRELOAD_BATCH < sortedPieces.length) await yieldToBrowser();
+  }
 
   const eventList = State.data.isMapOnly
       ? (worldDataValue.m_eventList || []).filter((n) => n.m_eventType === 'doodad')
       : (worldDataValue.m_eventList || []);
-  const eventPromises = eventList.map(async (node) => {
+  const preloadEvent = async (node: MapEventNode) => {
     const resources = await resolveEventResources(node, worldName);
     if (!resources) return;
     await warmEventResources(resources);
-  });
+  };
+  for (let i = 0; i < eventList.length; i += PRELOAD_BATCH) {
+    await Promise.all(eventList.slice(i, i + PRELOAD_BATCH).map(preloadEvent));
+    if (i + PRELOAD_BATCH < eventList.length) await yieldToBrowser();
+  }
 
-  await Promise.all([
-    Promise.all(piecePromises),
-    Promise.all(eventPromises),
-    preloadWorldPathAssets(worldName),
-  ]);
+  await preloadWorldPathAssets(worldName);
 }
 
 export async function renderMap(
@@ -604,7 +622,16 @@ export async function renderMap(
     return;
   }
 
-  const eventResults_nested = await Promise.all(eventList.map((n: MapEventNode) => loadEventPiecesForNode(n)));
+  // Chunk the async mounts so a big world cannot occupy one long task. Each batch yields a
+  // macrotask, letting the loading mask paint and input/scroll stay responsive.
+  const eventResults_nested: any[] = [];
+  const EVENT_BATCH = 24;
+  for (let i = 0; i < eventList.length; i += EVENT_BATCH) {
+    const batch = eventList.slice(i, i + EVENT_BATCH);
+    eventResults_nested.push(...(await Promise.all(batch.map((n: MapEventNode) => loadEventPiecesForNode(n)))));
+    if (isInterrupted()) break;
+    if (i + EVENT_BATCH < eventList.length) await yieldToBrowser();
+  }
   if (isInterrupted()) {
     eventResults_nested.flat().forEach(piece => {
       piece?.players?.forEach(p => {
@@ -642,7 +669,14 @@ export async function renderMap(
           (a.m_position?.x || 0) - (b.m_position?.x || 0)
   );
 
-  const results = await Promise.all(sortedPieces.map((p) => loadPiece(p, maxImageId)));
+  const results: (PieceInfo | null)[] = [];
+  const PIECE_BATCH = 32;
+  for (let i = 0; i < sortedPieces.length; i += PIECE_BATCH) {
+    const batch = sortedPieces.slice(i, i + PIECE_BATCH);
+    results.push(...(await Promise.all(batch.map((p) => loadPiece(p, maxImageId)))));
+    if (isInterrupted()) break;
+    if (i + PIECE_BATCH < sortedPieces.length) await yieldToBrowser();
+  }
   if (isInterrupted()) {
     results.forEach(res => {
       if (res?.player) {

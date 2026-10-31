@@ -157,6 +157,7 @@ export interface StateType {
     moveSnapEnabled: boolean;
     isMapOnly: boolean;
     textureResolution: number;
+    showBounds: boolean;
     // The flat container for the Event Layer specifically (m_eventList minus doodad) - distinct
     // from zombossContainer/pathContainer/doodad*Containers above.
     eventContainer: HTMLDivElement | null;

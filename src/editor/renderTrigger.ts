@@ -1,4 +1,4 @@
-export type TriggerMapRenderFn = (options?: { eventOnly?: boolean; resetCamera?: boolean }) => Promise<void>;
+export type TriggerMapRenderFn = (options?: { eventOnly?: boolean; resetCamera?: boolean; silent?: boolean }) => Promise<void>;
 
 let _trigger: TriggerMapRenderFn = async () => {
   console.warn('[renderTrigger] triggerMapRender called before EditorApp registered it');
@@ -10,6 +10,6 @@ export function setTriggerMapRender(fn: TriggerMapRenderFn): void {
 }
 
 /** Every module that needs to ask for a re-render (full or eventOnly) calls this. */
-export function triggerMapRender(options?: { eventOnly?: boolean; resetCamera?: boolean }): Promise<void> {
+export function triggerMapRender(options?: { eventOnly?: boolean; resetCamera?: boolean; silent?: boolean }): Promise<void> {
   return _trigger(options);
 }

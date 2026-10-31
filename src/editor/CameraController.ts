@@ -10,12 +10,12 @@ import {
   CoordinateSystem,
   resetCamera,
   updateContainerTransform,
-  drawWorldBounds,
 } from '../core/camera';
-import { DOM, BBox } from '../app/dom';
+import { DOM } from '../app/dom';
 import { EditorState } from './EditorState';
 import { parallaxOffsetX, parallaxScrollDx } from '../scene/coords';
 import { tryGetLayerStack } from '../scene/LayerStack';
+import { updateBoundsOverlay } from '../ui/boundsPanel';
 
 const BASE_FRICTION = 0.92;
 const BASE_FRAME_MS = 1000 / 60;
@@ -43,6 +43,7 @@ export const CameraController = {
       rect.width,
       rect.height
     );
+    updateBoundsOverlay();
     EditorState.cameraDirty = true;
   },
 
@@ -108,17 +109,6 @@ export const CameraController = {
           root.style.transform = `translateX(${parallaxOffsetX(layer, dx)}px)`;
         });
       }
-
-      if (BBox.canvas && BBox.ctx) {
-        const check = document.getElementById('bounding-rect-checkbox') as HTMLInputElement | null;
-        if (!check || check.checked) {
-          drawWorldBounds(BBox.canvas, BBox.ctx);
-        } else {
-          BBox.ctx.clearRect(0, 0, BBox.canvas.width, BBox.canvas.height);
-        }
-      }
-    } else if (BBox.canvas && BBox.ctx) {
-      BBox.ctx.clearRect(0, 0, BBox.canvas.width, BBox.canvas.height);
     }
 
     overlayHooks.drawGrid?.();

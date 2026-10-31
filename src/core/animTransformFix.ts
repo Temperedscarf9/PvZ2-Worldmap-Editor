@@ -1,91 +1,48 @@
 import { State } from './state';
+import { getUsesRasterizedImagesInAnim } from './worldMeta';
 
 export type AnimFix = { k: number; s: number };
 
-const S_1536_1200 = 1536 / 1200;
-const K_DOC_2 = 1;              // 文档 k=2
-const K_DOC_1536_600 = 1536 / 1200; // 文档 k=1536/600，再乘公式里的 *2
+/** Documented constants from worldmaplist UsesRasterizedImagesInAnim rules. */
+const S_RASTERIZED = 1;
+const K_RASTERIZED = 1536 / 600; // ≈ 2.56
+const S_NON_RASTERIZED = 1536 / 1200; // 1.28
+const K_NON_RASTERIZED = 2;
 
-/** 国际版 + 线性：命中表内 worldId/animId 时 文档 s=1536/1200, k=2 */
-export const ANIM_TRANSFORM_FIXES_DEFAULT: Array<{
-    worldIds: number[];
-    animIds: number[] | null;
-    fix: AnimFix;
-}> = [
-    { worldIds: [2], animIds: [9], fix: { k: K_DOC_2, s: S_1536_1200 } },
-    { worldIds: [3], animIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], fix: { k: K_DOC_2, s: S_1536_1200 } },
-    { worldIds: [4], animIds: [2, 3, 4, 5, 10, 11], fix: { k: K_DOC_2, s: S_1536_1200 } },
-    { worldIds: [5], animIds: [1, 2, 3, 4, 5], fix: { k: K_DOC_2, s: S_1536_1200 } },
-    //{ worldIds: [6], animIds: [21], fix: { k: 1, s: 1.28 } },// dark working imp path in v2.4.1
-    //{ worldIds: [7], animIds: [30], fix: { k: 1, s: 1.28 } },// beach working imp path in v2.9.1
-    { worldIds: [8], animIds: [21], fix: { k: 1, s: 1.28 } },// iceage working imp path in v3.2.1
-    //{ worldIds: [9], animIds: [21], fix: { k: 1, s: 1.28 } },// lostcity working imp path in v3.6.1
-    { worldIds: [11], animIds: [28, 29, 30, 31, 32, 33], fix: { k: K_DOC_2, s: S_1536_1200 } },
+/** Default when no AnimationDetails entry exists (same as non-rasterized). */
+const DEFAULT_FIX: AnimFix = { s: S_NON_RASTERIZED, k: K_NON_RASTERIZED };
 
-];
-
-/** 中国版 + 线性：沿用当前 CN 修正表（未改数值） */
-export const ANIM_TRANSFORM_FIXES_CN: Array<{
-    worldIds: number[];
-    animIds: number[] | null;
-    fix: AnimFix;
-}> = [
-    { worldIds: [3], animIds: [1, 2, 3, 4], fix: { k: 1, s: 1.28 } },
-    { worldIds: [5], animIds: [1, 2, 3, 4, 5], fix: { k: 1, s: 1.28 } },
-    { worldIds: [6], animIds: [1, 2, 3, 4, 5, 6, 7, 8, 9], fix: { k: 1, s: 1.28 } },
-    { worldIds: [7], animIds: [1, 2, 3, 4, 5, 6, 7], fix: { k: 1, s: 1.28 } }, // dark
-    { worldIds: [8], animIds: [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], fix: { k: 1, s: 1.28 } },
-    {
-        worldIds: [9],
-        animIds: [
-            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-        ],
-        fix: { k: 1, s: 1.28 },
-    },
-    {
-        worldIds: [10],
-        animIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-        fix: { k: 1, s: 1.28 },
-    },
-    { worldIds: [11], animIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], fix: { k: 1, s: 1.28 } },
-];
-
-/** 国际线性未命中表：文档 s=1, k=1536/600 */
-export const DEFAULT_FIX: AnimFix = { k: K_DOC_1536_600, s: 1 };
-/** 国际线性 worldId≥12 且 animId∈{3,6,7,8,9,11}：文档 s=1, k=2 */
-export const HIGH_WORLD_FIX: AnimFix = { k: K_DOC_2, s: 1 };
-/** 非线性：文档 s=1536/1200, k=2，无跳转条件 */
-export const NON_LINEAR_FIX: AnimFix = { k: K_DOC_2, s: S_1536_1200 };
+/** WorldMap_Twister rift worlds (m_worldName starts with "rift"): fixed s=1, k=2. */
+const RIFT_FIX: AnimFix = { s: 1, k: 2 };
 
 /**
- * 动画岛 / doodad 动画 transform 修正：
- * - isLinear==false → 固定 NON_LINEAR_FIX（无 world/anim 分支）
- * - isChina && isLinear → ANIM_TRANSFORM_FIXES_CN（当前中国版表）
- * - !isChina && isLinear → 国际线性表；worldId≥12 特殊；其余 DEFAULT_FIX
+ * Animation island / doodad transform correction.
+ *
+ * Rules (from worldmaplist AnimationDetails.UsesRasterizedImagesInAnim):
+ * - UsesRasterizedImagesInAnim === true  →  s = 1,         k = 1536/600
+ * - UsesRasterizedImagesInAnim === false →  s = 1536/1200, k = 2
+ * - no AnimationDetails entry for the anim →  s = 1536/1200, k = 2
+ *
+ * Special case: WorldMap_Twister rift worlds (selectedWorld starts with "rift")
+ * always use s = 1, k = 2 regardless of the table.
+ *
+ * s  = global scale stored on the animation definition (animDef+40)
+ * k  = design-space scale of the anchor / pivot
  */
-export function getAnimTransformFix(worldId: number, animId: number): AnimFix {
-    const isChina = State.data.isChinaVersion;
-    const isLinear = State.data.isLinear;
+export function getAnimTransformFix(animId: number): AnimFix {
+  const worldName = State.data.selectedWorld;
 
-    // 非线性：无条件统一修正
-    if (!isLinear) {
-        return NON_LINEAR_FIX;
-    }
+  // Rift family (Twister resource pack) — hard override
+  if (worldName && /^rift/i.test(worldName)) {
+    return RIFT_FIX;
+  }
 
-    // 中国版 + 线性：沿用现有 CN 表
-    if (isChina) {
-        const entry = ANIM_TRANSFORM_FIXES_CN.find(
-            (r) => r.worldIds.includes(worldId) && (!r.animIds || r.animIds.includes(animId))
-        );
-        return entry?.fix ?? DEFAULT_FIX;
-    }
+  const usesRasterized = getUsesRasterizedImagesInAnim(worldName, animId);
 
-    // 国际版 + 线性
-    if (worldId >= 12 && [3, 6, 7, 8, 9, 11].includes(animId)) {
-        return HIGH_WORLD_FIX;
-    }
-    const entry = ANIM_TRANSFORM_FIXES_DEFAULT.find(
-        (r) => r.worldIds.includes(worldId) && (!r.animIds || r.animIds.includes(animId))
-    );
-    return entry?.fix ?? DEFAULT_FIX;
+  if (usesRasterized === true) {
+    return { s: S_RASTERIZED, k: K_RASTERIZED };
+  }
+
+  // false or missing entry → non-rasterized defaults
+  return DEFAULT_FIX;
 }

@@ -33,7 +33,6 @@ export function preparePiece(piece: MapEventNode): void {
 
 export function computeLocalTransform(piece: MapEventNode, maxImageId: number): string {
   let m = Matrix.identity;
-  const worldId: number = State.data.mapConfig?.objdata?.m_worldId || 1;
   const isAnimation = (piece.m_imageID ?? 0) > maxImageId;
   const runtime = pieceRuntimeMap.get(piece);
   if (!runtime) return 'matrix(1,0,0,1,0,0)';
@@ -45,13 +44,13 @@ export function computeLocalTransform(piece: MapEventNode, maxImageId: number): 
     m = Matrix.multiply(m, Matrix.scale(runtime.flipScale, 1));
     m = Matrix.multiply(m, Matrix.translate(-runtime.width / 2, -runtime.height / 2));
   } else {
-    const fix = getAnimTransformFix(worldId, runtime.animId || 0);
+    const fix = getAnimTransformFix(runtime.animId || 0);
     const sx = (runtime.scaleX * fix.s * State.data.textureResolution) / 1536;
     const sy = (runtime.scaleY * fix.s * State.data.textureResolution) / 1536;
     m = Matrix.multiply(m, Matrix.scale(sx, sy));
     m = Matrix.multiply(m, Matrix.scale(runtime.flipScale, 1));
     m = Matrix.multiply(m, Matrix.rotate(runtime.angle));
-    m = Matrix.multiply(m, Matrix.translate(-97 * fix.k * 2, -97 * fix.k * 2));
+    m = Matrix.multiply(m, Matrix.translate(-97 * fix.k, -97 * fix.k));
   }
   return `matrix(${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}, ${m[4]}, ${m[5]})`;
 }
@@ -141,6 +140,33 @@ export async function loadAnimationPiece(
 
     runtime.animId = (piece.m_imageID ?? 0) - maxImageId;
 
+    // AnimationDetails must be warm *before* computeLocalTransform, otherwise
+    // getAnimTransformFix sees a null cache and every piece falls back to DEFAULT_FIX.
+    const animId = runtime.animId;
+    const worldName = State.data.selectedWorld;
+    let delayMin: number | undefined;
+    let delayMax: number | undefined;
+    if (worldName) {
+      if (State.data.isLinear) {
+        const detailsMap = await fetchWorldMapListAnimationDetails();
+        const worldDetails = detailsMap.get(worldName.toLowerCase());
+        if (worldDetails) {
+          const detail = worldDetails.find((d) => d.animId === animId);
+          if (detail) {
+            delayMin = detail.min;
+            delayMax = detail.max;
+          }
+        }
+      } else {
+        const delaysMap = await fetchWorldMapListAnimationDelays();
+        const worldDelays = delaysMap.get(worldName.toLowerCase());
+        if (worldDelays && worldDelays[animId - 1]) {
+          delayMin = worldDelays[animId - 1].min;
+          delayMax = worldDelays[animId - 1].max;
+        }
+      }
+    }
+
     const res = State.data.textureResolution;
     const hb = hitboxSize(res);
     const half = hitboxHalf(res);
@@ -173,27 +199,8 @@ export async function loadAnimationPiece(
     el.appendChild(visualEl);
 
     const player = new PamCanvasPlayer(canvas, animation, textureMap, animData?.path);
-
-    const animId = (piece.m_imageID ?? 0) - maxImageId;
-    const worldName = State.data.selectedWorld;
-    if (worldName) {
-      if (State.data.isLinear) {
-        const detailsMap = await fetchWorldMapListAnimationDetails();
-        const worldDetails = detailsMap.get(worldName.toLowerCase());
-        if (worldDetails) {
-          const detail = worldDetails.find(d => d.animId === animId);
-          if (detail) {
-            player.setDelayDetails(detail.min, detail.max);
-          }
-        }
-      } else {
-        const delaysMap = await fetchWorldMapListAnimationDelays();
-        const worldDelays = delaysMap.get(worldName.toLowerCase());
-        if (worldDelays && worldDelays[animId - 1]) {
-          const delay = worldDelays[animId - 1];
-          player.setDelayDetails(delay.min, delay.max);
-        }
-      }
+    if (delayMin !== undefined && delayMax !== undefined) {
+      player.setDelayDetails(delayMin, delayMax);
     }
 
     // Player registration is owned by IslandFactory / mount path — not here.

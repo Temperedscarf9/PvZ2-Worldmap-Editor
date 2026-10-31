@@ -32,6 +32,8 @@ import { bindRotatePanel } from '../editor/commands/RotateCommand';
 import { handleSaveMap, handleResetMap } from '../editor/MapIO';
 import { HistoryManager } from '../editor/HistoryManager';
 import { bindItemShopTabs, refreshItemShop, updateInspector } from '../ui/sidebar';
+import { initStudioUI } from '../ui/studio';
+import { updateSelectionFrame } from '../ui/selectionFrame';
 
 export const EditorApp = (() => {
   function handleUpdateTransform(): void {
@@ -42,8 +44,11 @@ export const EditorApp = (() => {
     CameraController.reset();
   }
 
-  async function triggerMapRender(options: { eventOnly?: boolean; resetCamera?: boolean } = {}): Promise<void> {
-    try {
+  async function triggerMapRender(options: { eventOnly?: boolean; resetCamera?: boolean; silent?: boolean } = {}): Promise<void> {
+    // A full re-render can take hundreds of ms on large worlds (image decode + DOM mount).
+    // runWithDeferredLoading only shows the mask when it actually exceeds the delay, so quick
+    // edits stay snappy while slow ones get visible feedback instead of a frozen UI.
+    const task = async () => {
       if (!options.eventOnly) {
         EditorState.rotatingPieces = [];
       }
@@ -65,8 +70,23 @@ export const EditorApp = (() => {
       } else {
         updateToolbarState();
       }
+      updateInspector();
+      window.dispatchEvent(new CustomEvent('studio:map-updated'));
+    };
+
+    try {
+      if (options.silent) {
+        await task();
+      } else {
+        await runWithDeferredLoading(
+          options.eventOnly ? '正在更新事件层…' : '正在重建地图…',
+          options.eventOnly ? '只重新挂载事件/装饰物' : '解析地图碎片、动画与路径',
+          task
+        );
+      }
     } catch (err) {
       console.error('Error rendering map:', err);
+      showToast('地图渲染失败，请查看控制台');
     }
   }
   // PAM player time budget per ~16.6ms frame. Tight while UI wants input priority.
@@ -79,6 +99,7 @@ export const EditorApp = (() => {
     const dtSeconds = dt / 1000;
 
     CameraController.tickFrame(dt, dtSeconds);
+    if (EditorState.selectedPieceRef) updateSelectionFrame();
 
     // Continuous rotation on pieces with m_rotationRate
     if (EditorState.rotatingPieces.length === 0 && State.data.pieces.length > 0) {
@@ -394,6 +415,7 @@ export const EditorApp = (() => {
     bindViewportOverlays();
     bindEvents();
     bindRotatePanel();
+    initStudioUI();
     updateToolbarState();
     window.addEventListener('resize', () => onViewportResize(handleResetCamera));
     requestAnimationFrame(tick);

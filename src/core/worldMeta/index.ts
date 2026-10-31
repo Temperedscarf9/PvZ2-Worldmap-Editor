@@ -7,7 +7,14 @@ import { WorldMapEventStatus } from '../../domain/types';
 
 // ─── Animation delay / detail caches ────────────────────────────────────────
 
-let cachedAnimationDetailsMap: Map<string, Array<{ animId: number; min: number; max: number }>> | null = null;
+export type AnimDetailEntry = {
+  animId: number;
+  min: number;
+  max: number;
+  usesRasterized: boolean;
+};
+
+let cachedAnimationDetailsMap: Map<string, AnimDetailEntry[]> | null = null;
 let cachedAnimationDelaysMap: Map<string, Array<{ min: number; max: number }>> | null = null;
 
 export function clearAnimationDetailsCache(): void {
@@ -91,11 +98,11 @@ export async function fetchWorldMapListAnimationDelays(): Promise<
 }
 
 export async function fetchWorldMapListAnimationDetails(): Promise<
-  Map<string, Array<{ animId: number; min: number; max: number }>>
+  Map<string, AnimDetailEntry[]>
 > {
   if (cachedAnimationDetailsMap) return cachedAnimationDetailsMap;
 
-  const detailsMap = new Map<string, Array<{ animId: number; min: number; max: number }>>();
+  const detailsMap = new Map<string, AnimDetailEntry[]>();
   const data = await getParsedWorldMapList();
 
   if (data) {
@@ -107,13 +114,14 @@ export async function fetchWorldMapListAnimationDetails(): Promise<
           const mapName = item.MapName;
           const animDetails = item.WorldResources?.AnimationDetails || [];
           if (mapName && animDetails.length > 0) {
-            const list: Array<{ animId: number; min: number; max: number }> = [];
+            const list: AnimDetailEntry[] = [];
             for (const detail of animDetails) {
               if (detail.AnimNumber !== undefined) {
                 list.push({
                   animId: detail.AnimNumber,
                   min: detail.AnimReplayDelayTimeMin ?? 0,
                   max: detail.AnimReplayDelayTimeMax ?? 0,
+                  usesRasterized: !!detail.UsesRasterizedImagesInAnim,
                 });
               }
             }
@@ -128,6 +136,22 @@ export async function fetchWorldMapListAnimationDetails(): Promise<
 
   cachedAnimationDetailsMap = detailsMap;
   return detailsMap;
+}
+
+/**
+ * Sync lookup of UsesRasterizedImagesInAnim for (worldName, animId).
+ * Returns undefined when the worldmaplist entry (or this anim) is absent.
+ * Callers should treat undefined the same as false (non-rasterized defaults).
+ */
+export function getUsesRasterizedImagesInAnim(
+  worldName: string | null | undefined,
+  animId: number
+): boolean | undefined {
+  if (!worldName || !cachedAnimationDetailsMap) return undefined;
+  const list = cachedAnimationDetailsMap.get(worldName.toLowerCase());
+  if (!list) return undefined;
+  const entry = list.find((d) => d.animId === animId);
+  return entry ? entry.usesRasterized : undefined;
 }
 
 export async function fetchWorldMapListEntryPoint(selectedWorld: string): Promise<string | null> {

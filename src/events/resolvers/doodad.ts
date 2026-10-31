@@ -2,7 +2,11 @@ import { EventResourceDef } from '../../domain/types';
 import { State } from '../../core/state';
 import { getAnimTransformFix } from '../../core/animTransformFix';
 import { findPieceAnim } from '../../core/resources';
-import { fetchWorldMapListAnimationDelays, getWorldAnimationBoundary } from '../../core/worldMeta';
+import {
+  fetchWorldMapListAnimationDelays,
+  fetchWorldMapListAnimationDetails,
+  getWorldAnimationBoundary,
+} from '../../core/worldMeta';
 import { animScale1536 } from '../../utils/scale';
 import { EventResourceCtx } from '../shared';
 
@@ -49,7 +53,18 @@ export async function resolveDoodadResources(ctx: EventResourceCtx): Promise<Eve
   let delayMin: number | undefined;
   let delayMax: number | undefined;
 
-  if (!State.data.isLinear) {
+  // Ensure AnimationDetails is warm before getAnimTransformFix reads the flag.
+  if (State.data.isLinear) {
+    const detailsMap = await fetchWorldMapListAnimationDetails();
+    const worldDetails = detailsMap.get(worldName.toLowerCase());
+    if (worldDetails) {
+      const detail = worldDetails.find((d) => d.animId === animId);
+      if (detail) {
+        delayMin = detail.min;
+        delayMax = detail.max;
+      }
+    }
+  } else {
     const delaysMap = await fetchWorldMapListAnimationDelays();
     const worldDelays = delaysMap.get(worldName.toLowerCase());
     if (worldDelays && worldDelays[animId - 1]) {
@@ -59,8 +74,7 @@ export async function resolveDoodadResources(ctx: EventResourceCtx): Promise<Eve
     }
   }
 
-  const worldId = State.data.mapConfig?.objdata?.m_worldId || 1;
-  const fix = getAnimTransformFix(worldId, animId);
+  const fix = getAnimTransformFix(animId);
 
   return [
     {
@@ -71,7 +85,7 @@ export async function resolveDoodadResources(ctx: EventResourceCtx): Promise<Eve
         delayMin,
         delayMax,
       },
-      offset: { x: -97 * fix.k * 2, y: -97 * fix.k * 2 },
+      offset: { x: -97 * fix.k, y: -97 * fix.k },
       scale: animScale1536(resolution) * fix.s,
     },
   ];

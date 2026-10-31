@@ -27,6 +27,7 @@ export const State: StateType = {
     isChinaVersion: false,
     isMapOnly: false,
     textureResolution: 1536,
+    showBounds: true,
     eventContainer: null,
     snap: false,
     moveSnapEnabled: false,

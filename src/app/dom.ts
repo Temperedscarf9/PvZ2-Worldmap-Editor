@@ -36,7 +36,7 @@ export const DOM = {
     imageFolderName:  getEl<HTMLSpanElement>('img-folder-name'),
     dropImageZone:    getEl<HTMLDivElement>('file-drop-zone', ['drop-images']),
     introModal:       getEl<HTMLDivElement>('upload-modal', ['intro-modal']),
-    btnClear:         getEl<HTMLButtonElement>('btn-restart', ['btn-clear']),
+    btnClear:         getEl<HTMLButtonElement>('btn-clear', ['btn-restart']),
     btnUnloadPack:    getEl<HTMLButtonElement>('btn-unload-pack'),
     selectWorld:      getEl<HTMLSelectElement>('selected-world-select', ['world-select']),
     checkUnlockAll:   getEl<HTMLInputElement>('unlock-all-checkbox', ['check-unlock-all']),

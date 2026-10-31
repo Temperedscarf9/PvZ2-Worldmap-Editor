@@ -63,12 +63,13 @@ export function clearAllRuntimeCaches(options: ClearRuntimeCacheOptions = {}): v
 
   // 3) 其它模块缓存与编辑器覆盖状态
   clearTintCache();
-  clearAnimationDetailsCache();
-  // Previously always cleared regardless of `keep` - this is the exact cache that makes
-  // unlockAll / status-toggle / resolution-switch instant once Start-time preload has warmed
-  // every (node × status × resolution) combination; clearing it unconditionally on every world
-  // switch meant that preload work was wasted the moment the user actually opened a world.
+  // AnimationDetails / Delays come from the package-level worldmaplist.json and are needed
+  // by getAnimTransformFix *before* the first computeLocalTransform. Clearing them on every
+  // world switch (even with preservePreloadedAssets) forced the first render after a switch
+  // to fall back to DEFAULT_FIX for every animation. Only drop them when the package itself
+  // is unloaded.
   if (!keep) {
+    clearAnimationDetailsCache();
     clearEventResourceCache();
   }
   // Always cleared: the static/animation image-id boundary is world- (and China-flag-)

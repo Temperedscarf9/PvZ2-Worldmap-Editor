@@ -104,11 +104,11 @@ export async function loadWorld(worldName: string): Promise<boolean> {
     State.data.selectedWorld = resolveResourceWorldIdentity(worldName);
     HistoryManager.clear();
 
-    if (DOM.uiElements.metaBar) {
-      DOM.uiElements.metaBar.textContent = `UID: ${config.uid} | WORLD: ${worldName.toUpperCase()}`;
-    }
     if (DOM.activeWorldInfo) {
-      DOM.activeWorldInfo.textContent = `Active: ${worldName.toUpperCase()}`;
+      DOM.activeWorldInfo.textContent = worldName.toUpperCase();
+    }
+    if (DOM.uiElements.selectWorld) {
+      DOM.uiElements.selectWorld.value = worldName;
     }
 
     updateGlobalLoading(`正在加载世界 ${worldName.toUpperCase()}…`, '重置运行时并清理缓存');

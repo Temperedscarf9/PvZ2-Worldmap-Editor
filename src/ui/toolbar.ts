@@ -169,5 +169,7 @@ export function updateToolbarState(): void {
   if (isCurLayerActive) {
     DOM.viewport.classList.add('cur-layer-active');
   }
+  document.body.classList.toggle('editing', toolMode !== 'select' && !isPanActive);
   applyDrawLayerFilter();
+  window.dispatchEvent(new CustomEvent('studio:toolbar-updated'));
 }

@@ -32,6 +32,7 @@ function snapshot(): HistoryEntry | null {
     data: JSON.stringify({
       m_mapPieces: od.m_mapPieces ?? [],
       m_eventList: od.m_eventList ?? [],
+      m_boundingRect: od.m_boundingRect ?? null,
     }),
   };
 }
@@ -42,9 +43,11 @@ function applySnapshot(entry: HistoryEntry): void {
     const parsed = JSON.parse(entry.data) as {
       m_mapPieces: unknown[];
       m_eventList: unknown[];
+      m_boundingRect?: unknown;
     };
     State.data.mapConfig.objdata.m_mapPieces = parsed.m_mapPieces as any;
     State.data.mapConfig.objdata.m_eventList = parsed.m_eventList as any;
+    State.data.mapConfig.objdata.m_boundingRect = parsed.m_boundingRect as any;
   } catch (err) {
     console.error('[HistoryManager] apply failed', err);
   }
@@ -142,8 +145,7 @@ export const HistoryManager = {
     try {
       applySnapshot(prev);
       clearSelection();
-      await triggerMapRender();
-      showToast(`已撤销：${prev.label}`);
+      await triggerMapRender({ silent: true });
     } finally {
       recordingEnabled = true;
       openGestureLabel = null;
@@ -166,8 +168,7 @@ export const HistoryManager = {
     try {
       applySnapshot(next);
       clearSelection();
-      await triggerMapRender();
-      showToast(`已重做：${next.label}`);
+      await triggerMapRender({ silent: true });
     } finally {
       recordingEnabled = true;
       openGestureLabel = null;

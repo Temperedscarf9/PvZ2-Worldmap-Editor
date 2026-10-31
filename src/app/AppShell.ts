@@ -21,25 +21,15 @@ export type AppShellDeps = {
 };
 
 function hideEditorChrome(): void {
-  const sideR = document.getElementById('sidebar-right');
-  if (sideR) {
-    sideR.style.display = 'none';
-    sideR.classList.remove('sidebar-visible');
-  }
-  const toolbarMiddle = document.getElementById('toolbar-middle-controls');
-  if (toolbarMiddle) toolbarMiddle.style.display = 'none';
-  const toolbarRight = document.getElementById('toolbar-right-controls');
-  if (toolbarRight) toolbarRight.style.display = 'none';
-  const controlsBar = document.getElementById('controls-bar');
-  if (controlsBar) controlsBar.style.display = 'none';
+  document.body.classList.remove('editor-active', 'editing');
+  const shell = document.getElementById('app-shell');
+  if (shell) shell.setAttribute('aria-hidden', 'true');
 }
 
 function showEditorChrome(): void {
-  const sideR = document.getElementById('sidebar-right');
-  if (sideR) {
-    sideR.style.display = 'flex';
-    sideR.classList.add('sidebar-visible');
-  }
+  document.body.classList.add('editor-active');
+  const shell = document.getElementById('app-shell');
+  if (shell) shell.setAttribute('aria-hidden', 'false');
 }
 
 export function bindAppShell(deps: AppShellDeps): void {

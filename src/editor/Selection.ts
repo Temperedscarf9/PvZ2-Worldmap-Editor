@@ -3,6 +3,7 @@ import { DOM } from '../app/dom';
 import { EditorState } from './EditorState';
 import { updateToolbarState } from '../ui/toolbar';
 import { updateInspector } from '../ui/sidebar';
+import { hideSelectionFrame, updateSelectionFrame } from '../ui/selectionFrame';
 
 export function clearSelection(): void {
   if (EditorState.selectedPieceRef) {
@@ -12,6 +13,7 @@ export function clearSelection(): void {
     EditorState.selectedPieceRef = null;
     updateToolbarState();
     updateInspector();
+    hideSelectionFrame();
   }
 }
 
@@ -39,4 +41,5 @@ export function selectPiece(pieceRef: any): void {
   }
   updateToolbarState();
   updateInspector();
+  updateSelectionFrame();
 }

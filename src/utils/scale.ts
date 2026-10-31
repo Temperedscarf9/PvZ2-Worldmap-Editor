@@ -37,10 +37,14 @@ export function hitboxHalf(resolution: number): number {
   return hitboxSize(resolution) / 2;
 }
 
-/** Push --hitbox-size onto :root so CSS ::after selection frames track resolution. */
+/** Push --hitbox-size / selection frame metrics onto :root so CSS tracks resolution. */
 export function applyHitboxCssVar(resolution: number): void {
   const size = hitboxSize(resolution);
+  const scale = resolution / 1536;
   document.documentElement.style.setProperty('--hitbox-size', `${size}px`);
+  document.documentElement.style.setProperty('--hitbox-border', `${Math.max(1, 7 * scale)}px`);
+  document.documentElement.style.setProperty('--selection-border', `${Math.max(1, 2 * scale)}px`);
+  document.documentElement.style.setProperty('--selection-glow', `${Math.max(4, 12 * scale)}px`);
 }
 
 /** Grid-path tile placement scale (authored at 1800). */

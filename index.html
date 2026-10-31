@@ -3,218 +3,310 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PvZ2 Worldmap Editor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css">
+  <title>Worldmap Studio · PvZ2</title>
 </head>
-<body>
+<body class="studio">
 
-<!-- 主视口 -->
-<div id="viewport">
-  <!-- 顶部编辑器工具栏（原 header 位置） -->
-  <div class="editor-toolbar" id="editor-toolbar">
-    <!-- 最左侧：四大模式 I D E S -->
-    <div class="toolbar-group toolbar-modes" id="toolbar-modes">
-      <button class="toolbar-btn mode-btn" id="mode-island" title="岛屿绘制模式 (Island Drawing)">I</button>
-      <button class="toolbar-btn mode-btn" id="mode-doodad" title="装饰物绘制模式 (Doodad Drawing)">D</button>
-      <button class="toolbar-btn mode-btn" id="mode-event" title="事件放置模式 (Event Placement)">E</button>
-      <button class="toolbar-btn mode-btn active" id="mode-select" title="选择模式 (Select)">S</button>
-    </div>
-    <div class="toolbar-divider"></div>
-    <!-- 中间动态按钮区域 -->
-    <div class="toolbar-group toolbar-middle" id="toolbar-middle">
-      <!-- Island / Doodad 共用工具 -->
-      <div class="middle-group" id="middle-island-doodad" style="display:none;">
-        <button class="toolbar-btn" id="btn-img-prev" title="上一张图片">&lt;Img</button>
-        <button class="toolbar-btn" id="btn-img-next" title="下一张图片">Img&gt;</button>
-        <button class="toolbar-btn" id="btn-layer-dec" title="降低图层">- Layer</button>
-        <button class="toolbar-btn" id="btn-layer-inc" title="提高图层">+ Layer</button>
-        <button class="toolbar-btn" id="btn-cur-layer" title="当前图层过滤">CurLayer</button>
-        <button class="toolbar-btn" id="btn-rotation" title="旋转">Rotate</button>
-        <button class="toolbar-btn" id="btn-flip" title="水平翻转">Flip</button>
-        <button class="toolbar-btn" id="btn-add" title="添加">Add</button>
-        <button class="toolbar-btn" id="btn-move" title="移动">Move</button>
-        <button class="toolbar-btn btn-danger" id="btn-delete" title="删除">Delete</button>
+<div id="app-shell" aria-hidden="false">
+
+  <!-- ═══════════════ Top bar ═══════════════ -->
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <span></span><span></span><span></span>
       </div>
-      <!-- Event Placement 工具 -->
-      <div class="middle-group" id="middle-event" style="display:none;">
-        <button class="toolbar-btn" id="btn-event-type" title="切换事件类型（供 Add 使用）">Event: level</button>
-        <button class="toolbar-btn" id="btn-event-add" title="添加事件">Add</button>
-        <button class="toolbar-btn" id="btn-event-edit" title="编辑属性">Edit</button>
-        <button class="toolbar-btn" id="btn-event-move" title="移动">Move</button>
-        <button class="toolbar-btn btn-danger" id="btn-event-delete" title="删除">Delete</button>
-      </div>
-      <!-- Select 工具 -->
-      <div class="middle-group" id="middle-select" style="display:flex;">
-        <button class="toolbar-btn" id="btn-append" title="追加">Append</button>
-        <button class="toolbar-btn btn-danger" id="btn-select-delete" title="删除">Delete</button>
+      <div class="brand-copy">
+        <strong>WORLDMAP</strong>
+        <span>STUDIO</span>
       </div>
     </div>
-    <div class="toolbar-divider"></div>
-    <!-- 最右侧：始终显示的按钮 -->
-    <div class="toolbar-group toolbar-right">
-      <button class="toolbar-btn" id="btn-undo" title="撤销 (Ctrl+Z)" disabled>↶ Undo</button>
-      <button class="toolbar-btn" id="btn-redo" title="重做 (Ctrl+Y)" disabled>↷ Redo</button>
-      <div class="toolbar-divider"></div>
-      <button class="toolbar-btn active" id="btn-pan" title="平移模式 (Pan)">Pan</button>
-      <button class="toolbar-btn" id="btn-map-only" title="仅显示地图装饰层">Map Only</button>
-      <button class="toolbar-btn" id="btn-snap-toggle" title="移动时吸附网格">Snap</button>
-      <button class="toolbar-btn btn-success" id="btn-save-map" title="保存地图配置并下载">Save</button>
-      <button class="toolbar-btn" id="btn-reset-map" title="重置到原始文件状态">Reset</button>
+
+    <div class="topbar-divider"></div>
+
+    <div class="world-switch">
+      <label for="selected-world-select">世界</label>
+      <select id="selected-world-select" class="select" disabled>
+        <option value="">-- 先上传资源包 --</option>
+      </select>
+      <span id="active-world-info" class="world-badge">未加载</span>
     </div>
+
+    <div class="res-switch">
+      <label for="texture-res-select">RES</label>
+      <select id="texture-res-select" class="select res-select" title="纹理分辨率（仅 1536 / 768）">
+        <option value="1536">1536</option>
+        <option value="768">768</option>
+      </select>
+    </div>
+
+    <div class="topbar-spacer"></div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-undo" title="撤销 (Ctrl+Z)" disabled aria-label="撤销">↶</button>
+      <button class="icon-btn" id="btn-redo" title="重做 (Ctrl+Y)" disabled aria-label="重做">↷</button>
+      <div class="topbar-divider"></div>
+      <button class="icon-btn" id="btn-toggle-left" title="显示/隐藏属性面板" aria-label="属性面板">◧</button>
+      <button class="icon-btn" id="btn-toggle-right" title="显示/隐藏素材面板" aria-label="素材面板">◨</button>
+      <div class="topbar-divider"></div>
+      <button class="btn btn-danger" id="btn-unload-pack" title="卸载当前资源包并返回首页">卸载数据包</button>
+      <button class="btn btn-primary" id="btn-save" title="保存并下载 worldmap.json">保存地图</button>
+      <button class="icon-btn danger" id="btn-restart" title="重置为原始地图">⟲</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ Workspace ═══════════════ -->
+  <div class="workspace">
+
+    <!-- ── Left: inspector ── -->
+    <aside class="drawer drawer-left" id="sidebar-right" aria-label="属性面板">
+      <div class="drawer-head">
+        <div class="drawer-title">属性</div>
+        <button class="drawer-collapse" id="btn-collapse-left" title="折叠">‹</button>
+      </div>
+
+      <div class="drawer-body">
+        <section class="drawer-page active" data-left-page="inspect">
+
+          <!-- ① 身份摘要：只读，且只放“编辑区里没有的东西”
+               类型 / 名称 / imageID / 资源路径。
+               坐标、旋转、缩放、层级一律不在这里重复渲染。 -->
+          <div class="section-title">
+            <span>选中对象</span>
+            <span class="section-hint" id="selection-kind">—</span>
+          </div>
+
+          <!-- ② 唯一的数值编辑区：变换参数 -->
+          <div class="section-title spaced">
+            <span>变换</span>
+          </div>
+          <div id="transform-panel" class="transform-panel">
+            <div class="empty-inline">未选中对象</div>
+          </div>
+
+          <!-- ③ 事件专有属性，同样只保留可编辑字段 -->
+          <div id="event-properties" class="event-properties"></div>
+
+          <!-- ④ 地图边界 -->
+          <div class="section-title spaced">
+            <span>地图边界</span>
+            <label class="bounds-toggle"><input type="checkbox" id="show-bounds-checkbox" checked /> 显示</label>
+          </div>
+          <div id="bounds-panel" class="transform-grid">
+            <div class="field"><label>X</label><input class="input" type="number" step="1" data-bounds-field="x" /></div>
+            <div class="field"><label>Y</label><input class="input" type="number" step="1" data-bounds-field="y" /></div>
+            <div class="field"><label>Width</label><input class="input" type="number" step="1" data-bounds-field="width" /></div>
+            <div class="field"><label>Height</label><input class="input" type="number" step="1" data-bounds-field="height" /></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ── Center: viewport ── -->
+    <main id="viewport" aria-label="地图视口">
+      <div id="empty-state-border"></div>
+      <div id="map-container"></div>
+      <canvas id="bbox-layer"></canvas>
+      <div id="selection-frame" class="selection-frame" aria-hidden="true"></div>
+      <div id="bounds-overlay" class="bounds-overlay" aria-hidden="true"></div>
+
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-out" title="缩小">−</button>
+        <span id="zoom-disp" class="zoom-value">100%</span>
+        <button class="zoom-btn" id="zoom-in" title="放大">＋</button>
+      </div>
+
+      <div class="viewport-hud hud-bottom">
+        <span id="footer-coord" class="coord-readout">X 0&nbsp;&nbsp;Y 0</span>
+      </div>
+
+      <div id="toast" class="editor-toast" style="display: none;"></div>
+    </main>
+
+    <!-- ── Right: asset palette ── -->
+    <aside class="drawer drawer-right" id="right-drawer" aria-label="素材面板">
+      <div class="drawer-head">
+        <div class="drawer-tabs" role="tablist">
+          <button class="drawer-tab active" data-right-tab="assets" role="tab">素材</button>
+          <button class="drawer-tab" data-right-tab="events" role="tab">事件</button>
+        </div>
+        <button class="drawer-collapse" id="btn-collapse-right" title="折叠">›</button>
+      </div>
+
+      <div class="drawer-body">
+        <section class="drawer-page active" data-right-page="assets">
+          <div class="section-title">
+            <span>地图碎片</span>
+            <span class="section-hint" id="asset-count">0</span>
+          </div>
+          <div class="palette-toolbar">
+            <input id="asset-search" class="search" type="search" placeholder="搜索 imageID / 名称…" />
+          </div>
+          <div id="asset-palette" class="asset-palette">
+            <div class="empty-inline">加载世界后显示素材</div>
+          </div>
+          <div class="palette-foot">
+            <span>当前默认 imageID</span>
+            <strong id="active-image-id">—</strong>
+          </div>
+        </section>
+
+        <section class="drawer-page" data-right-page="events">
+          <div class="section-title">
+            <span>事件类型</span>
+            <span class="section-hint">Event palette</span>
+          </div>
+          <div id="event-palette" class="event-palette"></div>
+          <div class="palette-foot">
+            <span>当前放置类型</span>
+            <strong id="active-event-type">level</strong>
+          </div>
+        </section>
+      </div>
+    </aside>
   </div>
 
-  <div id="empty-state-border"></div>
-  <div id="map-container"></div>
+  <!-- ═══════════════ Bottom dock ═══════════════ -->
+  <footer class="dock" id="controls-bar">
+    <div class="dock-group mode-group" id="toolbar-modes">
+      <button class="mode-btn" id="btn-mode-island" title="岛屿模式 (I)"><b>I</b><span>岛屿</span></button>
+      <button class="mode-btn" id="btn-mode-doodad" title="装饰物模式 (D)"><b>D</b><span>装饰</span></button>
+      <button class="mode-btn" id="btn-mode-event" title="事件模式 (E)"><b>E</b><span>事件</span></button>
+      <button class="mode-btn active" id="btn-mode-select" title="选择模式 (S)"><b>S</b><span>选择</span></button>
+    </div>
 
-  <!-- 右侧面板：仅世界设置 -->
-  <aside class="sidebar right" id="sidebar-right">
-    <div class="sidebar-section">
-      <div class="section-header">
-        <span class="section-icon">⚙</span>
-        <label>控制面板</label>
+    <div class="dock-divider"></div>
+
+    <div class="dock-group" id="island-subtools">
+      <button class="tool-btn" id="btn-island-add" title="添加岛屿">＋ 添加</button>
+      <button class="tool-btn" id="btn-island-move" title="移动岛屿">✥ 移动</button>
+      <button class="tool-btn" id="btn-island-rotation" title="旋转岛屿">↻ 旋转</button>
+      <button class="tool-btn" id="btn-island-flip" title="水平翻转">⇋ 翻转</button>
+      <button class="tool-btn danger" id="btn-island-delete" title="删除岛屿">✕ 删除</button>
+      <div class="dock-sep"></div>
+      <button class="tool-btn mini" id="btn-img-prev" title="上一张图片">‹</button>
+      <button class="tool-btn mini" id="btn-img-next" title="下一张图片">›</button>
+      <button class="tool-btn" id="btn-cur-layer" title="仅显示/编辑当前图层">图层</button>
+      <button class="tool-btn mini" id="btn-layer-dec" title="降低绘制层">−</button>
+      <button class="tool-btn mini" id="btn-layer-inc" title="提高绘制层">＋</button>
+    </div>
+
+    <div class="dock-group" id="event-subtools" style="display:none;">
+      <button class="tool-btn" id="btn-event-type" title="切换放置的事件类型">类型：level</button>
+      <button class="tool-btn" id="btn-event-add" title="添加事件">＋ 添加</button>
+      <button class="tool-btn" id="btn-event-edit" title="编辑选中事件属性">✎ 属性</button>
+      <button class="tool-btn" id="btn-event-move" title="移动事件">✥ 移动</button>
+      <button class="tool-btn danger" id="btn-event-delete" title="删除事件">✕ 删除</button>
+    </div>
+
+    <div class="dock-group" id="middle-select" style="display:flex;">
+      <button class="tool-btn" id="btn-append" title="从选中节点追加 path_node">＋ 追加路径</button>
+      <button class="tool-btn danger" id="btn-select-delete" title="删除选中节点">✕ 删除选中</button>
+    </div>
+
+    <div class="dock-divider"></div>
+
+    <div class="dock-group dock-view-group">
+      <button class="tool-btn" id="btn-pan" title="平移模式 (P)">✥ 平移</button>
+      <button class="tool-btn" id="btn-map-only" title="仅显示地图碎片，隐藏事件/路径">▣ 仅地图</button>
+      <button class="tool-btn" id="snap-grid-checkbox" aria-pressed="false" title="移动时吸附网格">⌗ 吸附</button>
+      <div class="dock-sep"></div>
+      <button class="tool-btn" id="btn-recenter" title="复位视图">⟲ 复位</button>
+      <button class="tool-btn" id="btn-fit-map" title="适配全图">⤢ 全图</button>
+      <button class="tool-btn danger" id="btn-clear" title="清空当前地图">✕ 清空</button>
+    </div>
+
+    <div class="dock-spacer"></div>
+
+    <div class="dock-group dock-right">
+      <span id="history-hint" class="dock-hint">尚无编辑历史</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════ Hidden compatibility controls ═══════════════ -->
+<div id="toolbar-middle-controls" style="display:none;"></div>
+<div id="toolbar-right-controls" style="display:none;"></div>
+
+<!-- rotate popover -->
+<div id="rotate-panel" class="rotate-panel" style="display:none;" aria-hidden="true">
+  <div class="rotate-title">旋转角度</div>
+  <div class="rotate-row">
+    <button type="button" class="rotate-btn" data-delta="-5">−5°</button>
+    <button type="button" class="rotate-btn" data-delta="-1">−1°</button>
+    <button type="button" class="rotate-btn" data-delta="1">+1°</button>
+    <button type="button" class="rotate-btn" data-delta="5">+5°</button>
+  </div>
+  <button type="button" class="btn btn-primary rotate-ok" id="rotate-panel-ok">完成</button>
+</div>
+
+<!-- hidden file inputs -->
+<input type="file" id="folder-upload-input" webkitdirectory directory multiple style="display:none;" />
+
+<!-- ═══════════════ Intro / upload modal ═══════════════ -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal intro-modal">
+    <div class="intro-brand">
+      <div class="brand-mark large" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div>
+        <h1>Worldmap Studio</h1>
+        <p>PvZ2 世界地图编辑器 · 重构版</p>
       </div>
-      <div class="setting-group">
-        <label class="setting-label">世界</label>
-        <select id="world-select" class="select-input" disabled>
-          <option value="">-- 未找到 --</option>
-        </select>
+    </div>
+
+    <div class="intro-grid">
+      <div class="drop-zone" id="drop-images">
+        <div class="drop-icon">⇪</div>
+        <strong>拖入资源文件夹</strong>
+        <span id="img-folder-name">或点击选择包含 images / worldmap 的根目录</span>
+        <em>支持完整 convert 资源包</em>
       </div>
-      <div class="setting-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="check-unlock-all">
-          <span>🔓 解锁全部</span>
+      <div class="intro-options">
+        <label class="switch-row">
+          <span>中国版本</span>
+          <input type="checkbox" id="check-china-version" />
+          <i class="switch"></i>
         </label>
-      </div>
-      <div class="setting-group">
-        <label class="setting-label">纹理分辨率</label>
-        <select id="texture-res" class="select-input">
-          <option value="1536">1536 (默认)</option>
-          <option value="768">768</option>
-        </select>
+        <label class="switch-row">
+          <span>线性地图</span>
+          <input type="checkbox" id="check-is-linear" checked />
+          <i class="switch"></i>
+        </label>
+        <div class="intro-note">
+          <span>上传内容只在本地浏览器解析，不会发送到服务器。</span>
+        </div>
       </div>
     </div>
 
-    <!-- 选中节点只读信息（随左侧模式切换字段） -->
-    <div class="sidebar-section" id="selection-info-section">
-      <div class="section-header">
-        <span class="section-icon">◎</span>
-        <label>选中节点</label>
-      </div>
-      <div id="metadata-bar" class="selection-info">
-        <div class="selection-empty">在地图上点击节点以查看属性</div>
-      </div>
-    </div>
-  </aside>
-
-  <!-- 底部控制栏 -->
-  <div class="controls-bar">
-    <div class="controls-left">
-      <div class="coord-display" id="footer-coords">X: 0 &nbsp; Y: 0</div>
-      <div class="stats-panel">
-        <span class="stats-label">缩放</span>
-        <span id="zoom-val" class="stats-value">1.00x</span>
-      </div>
-    </div>
-    <div class="controls-right">
-      <button class="btn btn-outline" id="btn-clear" title="清除当前地图渲染（保留已上传资源包）">
-        <span class="btn-icon">🗑</span> 清空地图
-      </button>
-      <button class="btn btn-primary" id="reset-cam" title="复位到初始视图">
-        <span class="btn-icon">⟲</span> 复位
-      </button>
-      <button class="btn btn-outline btn-danger-outline" id="btn-unload-pack" title="卸载全部已上传资源并返回首页">
-        <span class="btn-icon">⏏</span> 卸载资源
-      </button>
-    </div>
-  </div>
-  <!-- 旋转编辑面板：点亮 rotate 后点 hitbox 进入；±1/±5 立即生效，okay 关闭 -->
-  <div id="rotate-panel" class="rotate-panel" style="display: none;" aria-hidden="true">
-    <div class="rotate-panel-row">
-      <button type="button" class="rotate-panel-btn rotate-panel-btn-short" data-delta="-1">-1</button>
-      <button type="button" class="rotate-panel-btn rotate-panel-btn-short" data-delta="1">+1</button>
-    </div>
-    <div class="rotate-panel-row">
-      <button type="button" class="rotate-panel-btn rotate-panel-btn-short" data-delta="-5">-5</button>
-      <button type="button" class="rotate-panel-btn rotate-panel-btn-short" data-delta="5">+5</button>
-    </div>
-    <div class="rotate-panel-row">
-      <button type="button" class="rotate-panel-btn rotate-panel-btn-ok" id="rotate-panel-ok">okay</button>
-    </div>
-  </div>
-  <canvas id="bbox-layer"></canvas>
-</div>
-
-<!-- 隐藏左侧面板 -->
-<div id="sidebar-left" style="display:none !important;"></div>
-
-<!-- 文件输入 -->
-<div id="file-inputs">
-  <input type="file" id="images-input" webkitdirectory directory multiple />
-</div>
-
-<!-- 启动弹窗 -->
-<div class="modal-overlay" id="intro-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-icon">🗺</span>
-      <h2>欢迎使用 Worldmap Editor</h2>
-    </div>
-    <p class="modal-desc">请上传包含 <strong>images</strong> 和 <strong>worldmap</strong> 文件夹的资源根目录。</p>
-    <div class="input-group">
-      <label>选择资源文件夹</label>
-      <div class="file-drop" id="drop-images">
-        <span class="drop-icon">📂</span>
-        <span id="img-folder-name">点击浏览或拖拽文件夹…</span>
-      </div>
-    </div>
-    <div class="modal-options">
-      <label class="toggle-label">
-        <input type="checkbox" id="check-china-version">
-        <span class="toggle-slider"></span>
-        <span class="toggle-text">🇨🇳 中国版本</span>
-      </label>
-      <label class="toggle-label">
-        <input type="checkbox" id="check-is-linear" checked>
-        <span class="toggle-slider"></span>
-        <span class="toggle-text">📈 线性地图</span>
-      </label>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" id="start-viewer" disabled>🚀 启动编辑器</button>
+    <div class="intro-actions">
+      <span id="upload-progress" class="muted"></span>
+      <button class="btn btn-primary btn-lg" id="start-viewer" disabled>启动编辑器</button>
     </div>
   </div>
 </div>
 
-<!-- 自定义确认弹窗 -->
-<div id="confirm-modal-overlay" class="modal-overlay" style="display: none; z-index: 10000; align-items: center; justify-content: center; background: rgba(12, 12, 14, 0.85);">
-  <div class="modal" style="max-width: 420px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08); background: #1a1a24;">
-    <div class="modal-header" style="justify-content: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 12px;">
-      <span class="modal-icon">⚠️</span>
-      <h2 style="margin: 0 0 0 8px; font-size: 1.2rem; color: #fff;">确认操作 (Confirm)</h2>
+<!-- confirm modal -->
+<div id="confirm-modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <span class="modal-icon">!</span>
+      <h2>确认操作</h2>
     </div>
-    <p id="confirm-modal-message" style="margin: 20px 0; text-align: center; color: #d1d1d6; line-height: 1.6; font-size: 14px; padding: 0 10px;"></p>
-    <div class="modal-footer" style="display: flex; gap: 12px; justify-content: center; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 16px;">
-      <button id="confirm-modal-cancel" class="toolbar-btn" style="padding: 8px 16px; border-radius: 6px; background: rgba(255,255,255,0.05);">取消 (Cancel)</button>
-      <button id="confirm-modal-ok" class="toolbar-btn btn-danger" style="padding: 8px 16px; border-radius: 6px; background: #ef4444; color: #fff;">确认 (Confirm)</button>
+    <p id="confirm-modal-message" class="confirm-message"></p>
+    <div class="modal-actions">
+      <button id="confirm-modal-cancel" class="btn btn-ghost">取消</button>
+      <button id="confirm-modal-ok" class="btn btn-danger">确认</button>
     </div>
   </div>
 </div>
 
-
-<!-- 全局加载遮罩（上传 / 卸载资源等） -->
-<div id="global-loading-overlay" class="global-loading-overlay" style="display: none;" aria-hidden="true">
-  <div class="global-loading-card">
-    <div class="global-loading-spinner"></div>
-    <div id="global-loading-text" class="global-loading-text">处理中…</div>
-    <div id="global-loading-sub" class="global-loading-sub"></div>
+<!-- loading -->
+<div id="global-loading-overlay" class="loading-overlay" style="display:none;" aria-hidden="true">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div id="global-loading-text" class="loading-text">处理中…</div>
+    <div id="global-loading-sub" class="loading-sub"></div>
   </div>
 </div>
-
-<!-- 提示弹窗 (Toast) -->
-<div id="toast" class="editor-toast" style="display: none;"></div>
 
 <script type="module" src="/src/main.ts"></script>
 </body>
