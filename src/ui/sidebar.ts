@@ -25,9 +25,16 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function fmtNum(n: unknown, digits = 2): string {
+function fmtNum(n: unknown, digits = 6): string {
   if (typeof n !== 'number' || !Number.isFinite(n)) return '—';
-  return Number.isInteger(n) ? String(n) : n.toFixed(digits);
+  // Always show fixed decimal places so the inspector matches authoring precision.
+  return n.toFixed(digits);
+}
+
+/** Round to `digits` decimal places without turning the value into a string. */
+function roundTo(n: number, digits = 6): number {
+  const f = 10 ** digits;
+  return Math.round(n * f) / f;
 }
 
 function fmtVal(v: unknown): string {
@@ -93,13 +100,20 @@ function inputField(
   label: string,
   field: string,
   value: number | string,
-  opts: { step?: number; type?: string; small?: boolean } = {}
+  opts: { step?: number | string; type?: string; small?: boolean; digits?: number } = {}
 ): string {
   const type = opts.type || 'number';
   const step = opts.step != null ? ` step="${opts.step}"` : '';
+  let display: string;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const digits = opts.digits ?? 6;
+    display = value.toFixed(digits);
+  } else {
+    display = String(value ?? '');
+  }
   return `<div class="field">
     <label>${esc(label)}</label>
-    <input class="input${opts.small ? ' small' : ''}" type="${type}" data-transform-field="${field}" value="${esc(String(value))}"${step} />
+    <input class="input${opts.small ? ' small' : ''}" type="${type}" data-transform-field="${field}" value="${esc(display)}"${step} />
   </div>`;
 }
 
@@ -313,17 +327,17 @@ function renderTransformPanel(node: any, kind: NodeKind): string {
   const imageId = typeof node.m_imageID === 'number' ? node.m_imageID : 0;
 
   const fields = [
-    inputField('Position X', 'x', x, { step: 1 }),
-    inputField('Position Y', 'y', y, { step: 1 }),
-    inputField('Rotation °', 'rotation', rot, { step: 1 }),
-    inputField('Draw layer', 'drawLayer', layer, { step: 1 }),
-    inputField('Scale X', 'scaleX', sx, { step: 0.01 }),
-    inputField('Scale Y', 'scaleY', sy, { step: 0.01 }),
+    inputField('Position X', 'x', x, { step: 'any', digits: 6 }),
+    inputField('Position Y', 'y', y, { step: 'any', digits: 6 }),
+    inputField('Rotation °', 'rotation', rot, { step: 'any', digits: 6 }),
+    inputField('Draw layer', 'drawLayer', layer, { step: 1, digits: 0 }),
+    inputField('Scale X', 'scaleX', sx, { step: 'any', digits: 6 }),
+    inputField('Scale Y', 'scaleY', sy, { step: 'any', digits: 6 }),
   ];
 
   if (!isEvent) {
-    fields.push(inputField('Parallax', 'parallaxLayer', pl, { step: 1 }));
-    fields.push(inputField('imageID', 'imageID', imageId, { step: 1 }));
+    fields.push(inputField('Parallax', 'parallaxLayer', pl, { step: 1, digits: 0 }));
+    fields.push(inputField('imageID', 'imageID', imageId, { step: 1, digits: 0 }));
   }
 
   const flip = !isEvent
@@ -375,18 +389,19 @@ function bindInspectorActions(node: any, kind: NodeKind): void {
         const n = Number(raw);
         if (!Number.isFinite(n)) return;
         node.m_position = node.m_position || { x: 0, y: 0 };
-        node.m_position[field] = Math.round(n * 1000) / 1000;
+        // Keep 6 decimal places so inspector display matches editor math precision.
+        node.m_position[field] = roundTo(n, 6);
         applyTransformOnly(node);
         try { finalizeDragPathUpdate(); } catch { /* optional */ }
       } else if (field === 'rotation') {
         const n = Number(raw);
         if (!Number.isFinite(n)) return;
-        node.m_rotationAngle = ((n % 360) + 360) % 360;
+        node.m_rotationAngle = roundTo(((n % 360) + 360) % 360, 6);
         applyTransformOnly(node);
       } else if (field === 'scaleX' || field === 'scaleY') {
         const n = Number(raw);
         if (!Number.isFinite(n) || n === 0) return;
-        node[field === 'scaleX' ? 'm_scaleX' : 'm_scaleY'] = n;
+        node[field === 'scaleX' ? 'm_scaleX' : 'm_scaleY'] = roundTo(n, 6);
         applyTransformOnly(node);
       } else if (field === 'flip') {
         node.m_isArtFlipped = !!raw;
@@ -530,12 +545,12 @@ export function populateWorldSelector(): void {
 
   if (State.data.availableWorlds.includes(previousValue)) {
     select.value = previousValue;
+  } else if (State.data.selectedWorld && State.data.availableWorlds.includes(State.data.selectedWorld)) {
+    select.value = State.data.selectedWorld;
   } else {
     select.value = '';
   }
 
-  const badge = document.getElementById('active-world-info');
-  if (badge) badge.textContent = State.data.selectedWorld?.toUpperCase() || '未加载';
   window.dispatchEvent(new CustomEvent('studio:worlds-updated'));
 }
 

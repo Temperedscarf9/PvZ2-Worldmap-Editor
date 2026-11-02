@@ -70,9 +70,6 @@ export function disposeActiveScene(handleResetCamera: SessionCameraReset): void 
   if (DOM.uiElements.metaBar) {
     DOM.uiElements.metaBar.textContent = 'OBJECT_ID: UNKNOWN | WORLD_ID: UNKNOWN | WORLD: NONE';
   }
-  if (DOM.activeWorldInfo) {
-    DOM.activeWorldInfo.textContent = 'Active: NONE';
-  }
   DOM.emptyBorder.style.display = 'block';
 
   handleResetCamera();
@@ -104,9 +101,7 @@ export async function loadWorld(worldName: string): Promise<boolean> {
     State.data.selectedWorld = resolveResourceWorldIdentity(worldName);
     HistoryManager.clear();
 
-    if (DOM.activeWorldInfo) {
-      DOM.activeWorldInfo.textContent = worldName.toUpperCase();
-    }
+    // Selected world is already reflected by the top-bar <select>; no extra badge.
     if (DOM.uiElements.selectWorld) {
       DOM.uiElements.selectWorld.value = worldName;
     }

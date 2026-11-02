@@ -25,7 +25,6 @@ export const DOM = {
   viewport:           getEl<HTMLDivElement>('viewport'),
   mapContainer:       getEl<HTMLDivElement>('map-container'),
   emptyBorder:        getEl<HTMLDivElement>('empty-state-border'),
-  activeWorldInfo:    getEl<HTMLDivElement>('active-world-info'),
   uiElements: {
     zoomDisplay:      getEl<HTMLSpanElement>('zoom-disp', ['zoom-val']),
     footerCoord:      getEl<HTMLDivElement>('footer-coord', ['footer-coords']),
